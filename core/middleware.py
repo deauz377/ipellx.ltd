@@ -26,6 +26,14 @@ class LoginRequiredMiddleware(MiddlewareMixin):
     def process_request(self, request):
         path = request.path
 
+        # Exact match, not startswith — every path starts with "/", so a
+        # prefix rule here would exempt the entire site. Root is public so
+        # logged-out visitors see the landing page instead of a login wall;
+        # dashboard.views.overview() branches on request.user itself to
+        # decide which one to render.
+        if path == '/':
+            return None
+
         if any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES):
             return None
 

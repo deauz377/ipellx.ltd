@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}14xlevel ERP{% endblock %}</title>
+    <title>{% block title %}IPELLX{% endblock %}</title>
     <script>
         (function () {
             var saved = localStorage.getItem('theme');
@@ -12,82 +12,247 @@
             }
         })();
     </script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
+            /* Legacy names -- kept so signup.html's inline "var(--text-secondary)"
+               and every child template's default form-field styling below
+               keep working untouched. */
             --primary-dark: #1E3A5F;
             --primary: #2C5F8D;
             --primary-light: #3D7BA8;
             --bg-primary: #F5F7FA;
             --bg-secondary: #FFFFFF;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --border: #E0E4E8;
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --text-primary: #1B2531;
+            --text-secondary: #4B5768;
+            --border: #E2E6EB;
+            --shadow-lg: 0 20px 50px rgba(20, 30, 45, 0.14);
+
+            --amber: #F59E0B;
+            --amber-deep: #B45309;
+            --ink-faint: #6B7280;
+            --display: 'Fraunces', Georgia, serif;
+            --body-font: 'IBM Plex Sans', 'Segoe UI', sans-serif;
         }
 
         [data-theme="dark"] {
             --primary-dark: #14283F;
-            --primary: #2C5F8D;
-            --primary-light: #3D7BA8;
-            --bg-primary: #12161C;
-            --bg-secondary: #1B212B;
-            --text-primary: #E5E7EB;
-            --text-secondary: #9CA3AF;
-            --border: #2C3440;
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+            --primary: #3D7BA8;
+            --primary-light: #6FA6D6;
+            --bg-primary: #10141B;
+            --bg-secondary: #1A2029;
+            --text-primary: #E8ECF1;
+            --text-secondary: #B9C2CD;
+            --border: #2A323D;
+            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
+
+            --amber: #FBBF24;
+            --amber-deep: #FCD34D;
+            --ink-faint: #8A94A3;
         }
 
+        * { box-sizing: border-box; }
+
         body {
-            background-color: var(--bg-primary);
+            margin: 0;
             min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            font-family: var(--body-font);
             color: var(--text-primary);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .auth-shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 62rem) {
+            .auth-shell { grid-template-columns: 0.95fr 1.05fr; }
+        }
+
+        /* ---------- left: showcase (hidden below 62rem) ---------- */
+
+        .auth-showcase {
+            display: none;
+            position: relative;
+            background: linear-gradient(165deg, var(--primary-dark), var(--primary) 140%);
+            color: white;
+            padding: 3rem;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        @media (min-width: 62rem) {
+            .auth-showcase { display: flex; }
+        }
+
+        .auth-showcase::before {
+            content: "";
+            position: absolute;
+            inset: -30% -20% auto auto;
+            width: 22rem;
+            height: 22rem;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.25), transparent 70%);
+            pointer-events: none;
+        }
+
+        .showcase-wordmark {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 1.3rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: white;
+            position: relative;
+        }
+
+        .showcase-wordmark .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--amber);
+            display: inline-block;
+        }
+
+        .showcase-body {
+            position: relative;
+            max-width: 26rem;
+        }
+
+        .showcase-body h2 {
+            font-family: var(--display);
+            font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.1rem);
+            font-weight: 600;
+            line-height: 1.15;
+            margin: 0 0 0.9rem;
+            text-wrap: balance;
+        }
+
+        .showcase-body p {
+            color: rgba(255,255,255,0.78);
+            font-size: 0.98rem;
+            margin: 0;
+        }
+
+        .showcase-facts {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 2rem;
+        }
+
+        .showcase-fact {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .showcase-fact i {
+            color: var(--amber);
+            font-size: 1rem;
+            width: 1.25rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .showcase-foot {
+            position: relative;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.55);
+        }
+
+        /* ---------- right: form panel ---------- */
+
+        .auth-panel {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            padding: 2.5rem 1.5rem;
+            position: relative;
+        }
+
+        .theme-toggle-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 2.3rem;
+            height: 2.3rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
 
         .auth-card {
             width: 100%;
-            max-width: 420px;
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            padding: 40px 32px;
+            max-width: 400px;
         }
 
         .auth-brand {
-            text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
 
-        .auth-brand i {
-            font-size: 2rem;
-            color: var(--primary);
+        .auth-brand-mark {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 1.3rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
         }
 
-        .auth-brand h1 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            margin-top: 8px;
-            margin-bottom: 0;
+        .auth-brand-mark .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--amber);
+            display: inline-block;
+        }
+
+        @media (min-width: 62rem) {
+            /* The showcase panel already carries the wordmark. */
+            .auth-brand { display: none; }
+        }
+
+        .auth-card h1 {
+            font-family: var(--display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.4rem;
+            letter-spacing: -0.01em;
         }
 
         .auth-card p.auth-subtext {
             color: var(--text-secondary);
             font-size: 0.9rem;
-            margin-bottom: 20px;
+            margin: 0 0 22px;
         }
 
         .auth-card label {
-            font-weight: 500;
-            font-size: 0.875rem;
+            font-weight: 600;
+            font-size: 0.82rem;
             margin-bottom: 6px;
             display: block;
+            color: var(--text-primary);
         }
 
         .auth-card input[type="text"],
@@ -95,33 +260,41 @@
         .auth-card input[type="password"],
         .auth-card select {
             width: 100%;
-            padding: 10px 14px;
-            border-radius: 6px;
+            padding: 11px 14px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            background-color: var(--bg-primary);
+            background-color: var(--bg-secondary);
             color: var(--text-primary);
-            margin-bottom: 18px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            font-family: var(--body-font);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .auth-card input:focus,
         .auth-card select:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(44, 95, 141, 0.15);
         }
 
         .auth-btn {
             width: 100%;
-            padding: 11px;
+            padding: 12px;
             border: none;
-            border-radius: 6px;
-            background-color: var(--primary);
+            border-radius: 8px;
+            background-color: var(--primary-dark);
             color: white;
             font-weight: 600;
-            transition: background-color 0.2s ease;
+            font-size: 0.95rem;
+            font-family: var(--body-font);
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.15s ease;
         }
 
         .auth-btn:hover {
-            background-color: var(--primary-dark);
+            background-color: var(--primary);
+            transform: translateY(-1px);
         }
 
         .auth-errors {
@@ -129,7 +302,7 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
             color: #B91C1C;
             padding: 10px 14px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 0.875rem;
             margin-bottom: 18px;
         }
@@ -140,48 +313,53 @@
 
         .auth-links {
             text-align: center;
-            margin-top: 18px;
+            margin-top: 20px;
             font-size: 0.875rem;
+            color: var(--text-secondary);
         }
 
         .auth-links a {
-            color: var(--primary-light);
+            color: var(--primary);
             text-decoration: none;
+            font-weight: 500;
         }
 
         .auth-links a:hover {
             text-decoration: underline;
         }
-
-        .theme-toggle-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark mode">
-        <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
-    </button>
+    <div class="auth-shell">
+        <aside class="auth-showcase">
+            <a class="showcase-wordmark" href="/"><span class="dot"></span>IPELLX</a>
+            <div class="showcase-body">
+                <h2>Run sales, stock, payroll, and accounts — from one place.</h2>
+                <p>One login, every figure in KES, every business kept completely separate from every other.</p>
+                <div class="showcase-facts">
+                    <div class="showcase-fact"><i class="bi bi-diagram-3"></i>6 connected modules, one login</div>
+                    <div class="showcase-fact"><i class="bi bi-shield-check"></i>Owner, Manager, and Staff roles</div>
+                    <div class="showcase-fact"><i class="bi bi-cash-coin"></i>Kenyan Shillings, throughout</div>
+                </div>
+            </div>
+            <div class="showcase-foot">© 2026 IPELLX</div>
+        </aside>
 
-    <div class="auth-card">
-        <div class="auth-brand">
-            <i class="bi bi-graph-up"></i>
-            <h1>14xlevel ERP</h1>
-        </div>
+        <section class="auth-panel">
+            <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark mode">
+                <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
+            </button>
 
-        {% block auth_content %}{% endblock %}
+            <div class="auth-card">
+                <div class="auth-brand">
+                    <a class="auth-brand-mark" href="/"><span class="dot"></span>IPELLX</a>
+                </div>
+
+                <h1>{% block auth_heading %}Welcome back{% endblock %}</h1>
+
+                {% block auth_content %}{% endblock %}
+            </div>
+        </section>
     </div>
 
     <script>

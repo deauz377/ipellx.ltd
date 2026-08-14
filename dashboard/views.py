@@ -10,10 +10,20 @@ from inventory.models import Product
 from expenses.models import Expense
 from customers.models import Customer
 from tenants.decorators import role_required
-from tenants.models import User
+from tenants.models import User, SubscriptionPlan
 
 
 def overview(request):
+    if not request.user.is_authenticated:
+        plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('duration_days'))
+        for plan in plans:
+            # Only worth showing for plans long enough that a monthly
+            # reading isn't just the sticker price restated.
+            plan.monthly_equivalent = (
+                (plan.price_kes / plan.duration_days) * 30 if plan.duration_days > 35 else None
+            )
+        return render(request, 'dashboard/landing.html', {'plans': plans})
+
     today = timezone.now().date()
     current_month = today.replace(day=1)
     last_month = (current_month - timedelta(days=1)).replace(day=1)

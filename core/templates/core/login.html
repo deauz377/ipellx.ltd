@@ -1,8 +1,11 @@
 {% extends 'core/auth_base.html' %}
 
-{% block title %}Sign in - 14xlevel ERP{% endblock %}
+{% block title %}Sign in - IPELLX{% endblock %}
+{% block auth_heading %}Sign in{% endblock %}
 
 {% block auth_content %}
+    <p class="auth-subtext">Enter your details below to access your account.</p>
+
     {% if form.non_field_errors %}
         <div class="auth-errors">
             {% for error in form.non_field_errors %}

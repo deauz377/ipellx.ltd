@@ -1,0 +1,942 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPELLX — Run your business in one place</title>
+    <meta name="description" content="IPELLX is the multi-tenant ERP for Kenyan businesses: sales, inventory, customers, expenses, HR, payroll, and accounting, in KES, in one system.">
+    <script>
+        (function () {
+            var saved = localStorage.getItem('theme');
+            if (saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --navy-deep: #1E3A5F;
+            --navy: #2C5F8D;
+            --navy-light: #3D7BA8;
+            --amber: #F59E0B;
+            --amber-deep: #B45309;
+            --amber-wash: #FEF3C7;
+
+            --ground: #F7F8FA;
+            --surface: #FFFFFF;
+            --surface-sunk: #EEF1F5;
+
+            --ink: #1B2531;
+            --ink-soft: #4B5768;
+            --ink-faint: #6B7280;
+
+            --rule: #E2E6EB;
+            --rule-strong: #CBD2DA;
+
+            --shadow-sm: 0 1px 2px rgba(20, 30, 45, 0.06);
+            --shadow-md: 0 8px 24px rgba(20, 30, 45, 0.08);
+            --shadow-lg: 0 20px 50px rgba(20, 30, 45, 0.14);
+
+            --display: 'Fraunces', Georgia, serif;
+            --body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            --mono: 'IBM Plex Mono', ui-monospace, monospace;
+        }
+
+        [data-theme="dark"] {
+            --navy-deep: #14283F;
+            --navy: #3D7BA8;
+            --navy-light: #6FA6D6;
+            --amber: #FBBF24;
+            --amber-deep: #FCD34D;
+            --amber-wash: rgba(251, 191, 36, 0.12);
+
+            --ground: #10141B;
+            --surface: #1A2029;
+            --surface-sunk: #212934;
+
+            --ink: #E8ECF1;
+            --ink-soft: #B9C2CD;
+            --ink-faint: #8A94A3;
+
+            --rule: #2A323D;
+            --rule-strong: #3A4451;
+
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+
+        body {
+            margin: 0;
+            background: var(--ground);
+            color: var(--ink);
+            font-family: var(--body);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--display);
+            color: var(--ink);
+            text-wrap: balance;
+            margin: 0;
+        }
+
+        a { color: inherit; }
+
+        .wrap {
+            max-width: 72rem;
+            margin: 0 auto;
+            padding-left: clamp(1.25rem, 4vw, 2.5rem);
+            padding-right: clamp(1.25rem, 4vw, 2.5rem);
+        }
+
+        /* ---------- nav ---------- */
+
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: color-mix(in srgb, var(--ground) 88%, transparent);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--rule);
+        }
+
+        .nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            height: 4.25rem;
+        }
+
+        .wordmark {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 1.4rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--ink);
+        }
+
+        .wordmark .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--amber);
+            display: inline-block;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links a {
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .nav-links a:hover { color: var(--ink); }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-signin {
+            font-size: 0.92rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--ink);
+        }
+
+        .theme-toggle-btn {
+            background: var(--surface-sunk);
+            border: 1px solid var(--rule);
+            color: var(--ink-soft);
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.92rem;
+            padding: 0.7rem 1.4rem;
+            border-radius: 8px;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .btn-amber {
+            background: var(--amber);
+            color: #1B1200;
+        }
+        .btn-amber:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: var(--rule-strong);
+            color: var(--ink);
+        }
+        .btn-ghost:hover { background: var(--surface-sunk); }
+
+        .btn-navy {
+            background: var(--navy-deep);
+            color: white;
+        }
+        .btn-navy:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); background: var(--navy); }
+
+        .btn-lg { padding: 0.9rem 1.8rem; font-size: 1rem; }
+
+        @media (max-width: 62rem) {
+            .nav-links { display: none; }
+        }
+
+        @media (max-width: 26rem) {
+            .nav-actions { gap: 0.6rem; }
+            .nav-signin { display: none; }
+            .nav-actions .btn { padding: 0.6rem 1rem; font-size: 0.85rem; }
+        }
+
+        /* ---------- hero ---------- */
+
+        .hero {
+            padding: clamp(3rem, 8vw, 6rem) 0 clamp(2.5rem, 6vw, 4rem);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: clamp(2rem, 5vw, 4rem);
+            align-items: center;
+        }
+
+        @media (max-width: 62rem) {
+            .hero-grid { grid-template-columns: 1fr; }
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--amber-deep);
+            background: var(--amber-wash);
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            margin-bottom: 1.25rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 1.3rem + 3.6vw, 3.6rem);
+            font-weight: 600;
+            line-height: 1.08;
+            letter-spacing: -0.015em;
+        }
+
+        .hero .lede {
+            margin-top: 1.4rem;
+            font-size: clamp(1.02rem, 0.95rem + 0.3vw, 1.18rem);
+            color: var(--ink-soft);
+            max-width: 40ch;
+        }
+
+        .hero-ctas {
+            margin-top: 2.1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.9rem;
+        }
+
+        .hero-note {
+            margin-top: 1.1rem;
+            font-size: 0.85rem;
+            color: var(--ink-faint);
+        }
+
+        /* hero panel: facts, not fabricated stats */
+        .hero-panel {
+            background: linear-gradient(160deg, var(--navy-deep), var(--navy) 130%);
+            border-radius: 20px;
+            padding: clamp(1.6rem, 3vw, 2.2rem);
+            box-shadow: var(--shadow-lg);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::before {
+            content: "";
+            position: absolute;
+            inset: -40% -20% auto auto;
+            width: 16rem;
+            height: 16rem;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.28), transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-panel-title {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 1.1rem;
+        }
+
+        .hero-facts {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            position: relative;
+        }
+
+        .hero-fact {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 0.9rem 1rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+        }
+
+        .hero-fact i {
+            font-size: 1.15rem;
+            color: var(--amber);
+            margin-top: 0.15rem;
+        }
+
+        .hero-fact strong {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .hero-fact span {
+            font-size: 0.83rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* ---------- trust strip ---------- */
+
+        .trust-strip {
+            border-top: 1px solid var(--rule);
+            border-bottom: 1px solid var(--rule);
+            background: var(--surface);
+        }
+
+        .trust-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--rule);
+        }
+
+        .trust-item {
+            background: var(--surface);
+            padding: 1.5rem clamp(1rem, 3vw, 1.75rem);
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .trust-item i {
+            font-size: 1.3rem;
+            color: var(--navy);
+            flex-shrink: 0;
+        }
+
+        .trust-item strong {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .trust-item span {
+            font-size: 0.82rem;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 48rem) {
+            .trust-row { grid-template-columns: 1fr; }
+        }
+
+        /* ---------- section shell ---------- */
+
+        section { padding: clamp(3.5rem, 8vw, 6rem) 0; }
+
+        .section-head {
+            max-width: 42rem;
+            margin-bottom: clamp(2rem, 5vw, 3rem);
+        }
+
+        .section-eyebrow {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--navy);
+            margin-bottom: 0.6rem;
+            display: block;
+        }
+
+        .section-head h2 {
+            font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.35rem);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .section-head p {
+            margin-top: 0.85rem;
+            color: var(--ink-soft);
+            font-size: 1.02rem;
+        }
+
+        /* ---------- modules ---------- */
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 62rem) {
+            .module-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 40rem) {
+            .module-grid { grid-template-columns: 1fr; }
+        }
+
+        .module-card {
+            background: var(--surface);
+            border: 1px solid var(--rule);
+            border-radius: 14px;
+            padding: 1.6rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .module-card:hover {
+            border-color: var(--navy-light);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .module-icon {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 10px;
+            background: var(--surface-sunk);
+            color: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .module-card h3 {
+            font-size: 1.08rem;
+            font-weight: 600;
+            margin-bottom: 0.7rem;
+        }
+
+        .module-card ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .module-card li {
+            font-size: 0.87rem;
+            color: var(--ink-soft);
+            display: flex;
+            gap: 0.55rem;
+            align-items: flex-start;
+        }
+
+        .module-card li i {
+            color: var(--navy-light);
+            font-size: 0.8rem;
+            margin-top: 0.32rem;
+            flex-shrink: 0;
+        }
+
+        /* ---------- why ---------- */
+
+        .why-band {
+            background: var(--surface-sunk);
+        }
+
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        @media (max-width: 55rem) {
+            .why-grid { grid-template-columns: 1fr; }
+        }
+
+        .why-item .num {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--amber-deep);
+            margin-bottom: 0.9rem;
+            display: block;
+        }
+
+        .why-item h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+        }
+
+        .why-item p {
+            color: var(--ink-soft);
+            font-size: 0.94rem;
+            margin: 0;
+        }
+
+        /* ---------- pricing ---------- */
+
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr));
+            gap: 1.5rem;
+            max-width: 46rem;
+        }
+
+        .price-card {
+            background: var(--surface);
+            border: 1px solid var(--rule);
+            border-radius: 16px;
+            padding: 1.9rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .price-card.is-featured {
+            border-color: var(--navy);
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+
+        .price-badge {
+            position: absolute;
+            top: -0.7rem;
+            left: 1.9rem;
+            background: var(--navy-deep);
+            color: white;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+        }
+
+        .price-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .price-figure {
+            font-family: var(--mono);
+            font-size: 2.1rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .price-figure .cur {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--ink-faint);
+            vertical-align: 0.5rem;
+            margin-right: 0.2rem;
+        }
+
+        .price-period {
+            font-size: 0.85rem;
+            color: var(--ink-faint);
+            margin-top: 0.2rem;
+        }
+
+        .price-equiv {
+            font-size: 0.82rem;
+            color: var(--navy);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .price-card .btn { margin-top: 1.5rem; }
+
+        .price-empty {
+            color: var(--ink-faint);
+            font-size: 0.95rem;
+        }
+
+        /* ---------- final cta ---------- */
+
+        .final-cta {
+            background: linear-gradient(160deg, var(--navy-deep), var(--navy) 140%);
+            border-radius: 24px;
+            padding: clamp(2.5rem, 6vw, 4rem);
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .final-cta::before {
+            content: "";
+            position: absolute;
+            inset: auto auto -30% -10%;
+            width: 20rem;
+            height: 20rem;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.22), transparent 70%);
+        }
+
+        .final-cta h2 {
+            color: white;
+            font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem);
+            font-weight: 600;
+            position: relative;
+        }
+
+        .final-cta p {
+            margin-top: 0.8rem;
+            color: rgba(255,255,255,0.78);
+            font-size: 1rem;
+            position: relative;
+        }
+
+        .final-cta .hero-ctas {
+            justify-content: center;
+            position: relative;
+            margin-top: 1.8rem;
+        }
+
+        /* ---------- footer ---------- */
+
+        footer {
+            border-top: 1px solid var(--rule);
+            padding: 2.5rem 0 3rem;
+        }
+
+        .footer-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .footer-links a {
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+        .footer-links a:hover { color: var(--ink); }
+
+        .footer-meta {
+            font-size: 0.8rem;
+            color: var(--ink-faint);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="nav">
+        <div class="wrap nav-row">
+            <a class="wordmark" href="/"><span class="dot"></span>IPELLX</a>
+            <ul class="nav-links">
+                <li><a href="#modules">Modules</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark mode">
+                    <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
+                </button>
+                <a class="nav-signin" href="{% url 'core:login' %}">Sign in</a>
+                <a class="btn btn-amber" href="{% url 'core:signup' %}">Get started</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="wrap hero-grid">
+            <div>
+                <span class="eyebrow"><i class="bi bi-geo-alt"></i> Built for Kenyan businesses</span>
+                <h1>Run sales, stock, payroll, and accounts — from one system.</h1>
+                <p class="lede">IPELLX replaces the spreadsheet, the notebook, and the three different apps your business has outgrown. One login, every figure in KES, every business kept completely separate from every other.</p>
+                <div class="hero-ctas">
+                    <a class="btn btn-navy btn-lg" href="{% url 'core:signup' %}">Create your account</a>
+                    <a class="btn btn-ghost btn-lg" href="{% url 'core:login' %}">Sign in</a>
+                </div>
+                <p class="hero-note">No card required to start. Cancel anytime.</p>
+            </div>
+            <div class="hero-panel">
+                <div class="hero-panel-title">What's inside</div>
+                <div class="hero-facts">
+                    <div class="hero-fact">
+                        <i class="bi bi-diagram-3"></i>
+                        <div><strong>6 connected modules</strong><span>Sales, inventory, customers, expenses, HR &amp; payroll, accounting</span></div>
+                    </div>
+                    <div class="hero-fact">
+                        <i class="bi bi-shield-check"></i>
+                        <div><strong>Owner, Manager, Staff</strong><span>Each role sees exactly what their job needs</span></div>
+                    </div>
+                    <div class="hero-fact">
+                        <i class="bi bi-cash-coin"></i>
+                        <div><strong>KES, throughout</strong><span>East Africa Time, Kenyan Shillings — no conversions</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="trust-strip">
+        <div class="wrap">
+            <div class="trust-row">
+                <div class="trust-item">
+                    <i class="bi bi-building-lock"></i>
+                    <div><strong>Multi-tenant</strong><span>Your business, walled off from every other</span></div>
+                </div>
+                <div class="trust-item">
+                    <i class="bi bi-person-check"></i>
+                    <div><strong>Role-based access</strong><span>Owner, Manager, and Staff logins, kept distinct</span></div>
+                </div>
+                <div class="trust-item">
+                    <i class="bi bi-clock-history"></i>
+                    <div><strong>Built for Kenya</strong><span>KES currency, DD/MM/YYYY dates, East Africa Time</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="modules">
+        <div class="wrap">
+            <div class="section-head">
+                <span class="section-eyebrow">Modules</span>
+                <h2>Everything the business runs on</h2>
+                <p>Six modules, sharing one set of customers, products, and numbers — nothing re-entered twice.</p>
+            </div>
+            <div class="module-grid">
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-receipt"></i></div>
+                    <h3>Sales &amp; Invoicing</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Quick sale and daily sales entry</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Invoices tracked as paid, partial, or unpaid</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Product-level profit reporting</li>
+                    </ul>
+                </div>
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-box2"></i></div>
+                    <h3>Inventory</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Products and suppliers in one place</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Automatic low-stock alerts</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Bulk import and export via CSV</li>
+                    </ul>
+                </div>
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-people"></i></div>
+                    <h3>Customers &amp; Credit</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Customer records tied to every sale</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Credit tracking for accounts sold on terms</li>
+                    </ul>
+                </div>
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-wallet2"></i></div>
+                    <h3>Expenses</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Categorized expense tracking</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Monthly totals and category breakdowns</li>
+                    </ul>
+                </div>
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-person-badge"></i></div>
+                    <h3>HR &amp; Payroll</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Attendance, leave, and recruitment</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Salary structures, allowances, deductions</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Payslips generated per payroll run</li>
+                    </ul>
+                </div>
+                <div class="module-card">
+                    <div class="module-icon"><i class="bi bi-calculator"></i></div>
+                    <h3>Accounting</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill"></i>Bank accounts and reconciliation</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Budgets and trial balance</li>
+                        <li><i class="bi bi-check-circle-fill"></i>Group savings goals, chama-style</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="why-band">
+        <div class="wrap">
+            <section style="padding-top: clamp(3.5rem, 8vw, 5rem);">
+                <div class="section-head">
+                    <span class="section-eyebrow">Why IPELLX</span>
+                    <h2>Built the way a Kenyan business actually runs</h2>
+                </div>
+                <div class="why-grid">
+                    <div class="why-item">
+                        <span class="num">01</span>
+                        <h3>One login, every role</h3>
+                        <p>Owners see the whole business. Managers see their store. Staff see their shift. Same system, different view — set once, per account.</p>
+                    </div>
+                    <div class="why-item">
+                        <span class="num">02</span>
+                        <h3>Your data, isolated</h3>
+                        <p>Every business on IPELLX is walled off from every other. No shared spreadsheets, no accidental cross-contamination between accounts.</p>
+                    </div>
+                    <div class="why-item">
+                        <span class="num">03</span>
+                        <h3>Kenya first</h3>
+                        <p>Shillings, not dollars. East Africa Time, not UTC. DD/MM/YYYY, not the American format. Built here, for here.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section id="pricing">
+        <div class="wrap">
+            <div class="section-head">
+                <span class="section-eyebrow">Pricing</span>
+                <h2>Simple pricing</h2>
+                <p>Pick monthly if you're trying it out, yearly if you're staying.</p>
+            </div>
+            {% if plans %}
+            <div class="price-grid">
+                {% for plan in plans %}
+                <div class="price-card{% if plan.monthly_equivalent %} is-featured{% endif %}">
+                    {% if plan.monthly_equivalent %}<span class="price-badge">Best value</span>{% endif %}
+                    <h3>{{ plan.name }}</h3>
+                    <div class="price-figure"><span class="cur">KES</span>{{ plan.price_kes|floatformat:0|intcomma }}</div>
+                    <div class="price-period">every {{ plan.duration_days }} days</div>
+                    {% if plan.monthly_equivalent %}
+                        <div class="price-equiv">≈ KES {{ plan.monthly_equivalent|floatformat:0|intcomma }} / month</div>
+                    {% endif %}
+                    <a class="btn btn-navy" href="{% url 'core:signup' %}">Get started</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+                <p class="price-empty">Pricing is being finalized — <a href="{% url 'core:signup' %}" style="color: var(--navy); font-weight: 600;">create an account</a> and we'll be in touch.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section>
+        <div class="wrap">
+            <div class="final-cta">
+                <h2>Ready to run your business from one place?</h2>
+                <p>Create your account and bring your first invoice, product, or payslip in within minutes.</p>
+                <div class="hero-ctas">
+                    <a class="btn btn-amber btn-lg" href="{% url 'core:signup' %}">Create your account</a>
+                    <a class="btn btn-ghost btn-lg" style="border-color: rgba(255,255,255,0.4); color: white;" href="{% url 'core:login' %}">Sign in</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="wrap footer-row">
+            <a class="wordmark" href="/" style="font-size: 1.1rem;"><span class="dot"></span>IPELLX</a>
+            <ul class="footer-links">
+                <li><a href="{% url 'core:login' %}">Sign in</a></li>
+                <li><a href="{% url 'core:signup' %}">Create an account</a></li>
+            </ul>
+            <span class="footer-meta">© 2026 IPELLX. Built for Kenyan business.</span>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            var htmlEl = document.documentElement;
+            var toggleBtn = document.getElementById('themeToggleBtn');
+            var toggleIcon = document.getElementById('themeToggleIcon');
+
+            function updateIcon() {
+                var isDark = htmlEl.getAttribute('data-theme') === 'dark';
+                toggleIcon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+            }
+            updateIcon();
+
+            toggleBtn.addEventListener('click', function () {
+                var isDark = htmlEl.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    htmlEl.removeAttribute('data-theme');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    htmlEl.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+                updateIcon();
+            });
+        })();
+    </script>
+</body>
+</html>
