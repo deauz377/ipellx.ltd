@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Settings - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-person-gear"></i> Account Settings</h1>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Change Username</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>{{ username_form.username.label }}</label>
+                        {{ username_form.username }}
+                        {% if username_form.username.errors %}
+                            <div class="invalid-feedback d-block">{{ username_form.username.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="update_username" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Username
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Change Password</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>{{ password_form.old_password.label }}</label>
+                        {{ password_form.old_password }}
+                        {% if password_form.old_password.errors %}
+                            <div class="invalid-feedback d-block">{{ password_form.old_password.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label>{{ password_form.new_password1.label }}</label>
+                        {{ password_form.new_password1 }}
+                        {% if password_form.new_password1.errors %}
+                            <div class="invalid-feedback d-block">{{ password_form.new_password1.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">{{ password_form.new_password1.help_text|safe }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>{{ password_form.new_password2.label }}</label>
+                        {{ password_form.new_password2 }}
+                        {% if password_form.new_password2.errors %}
+                            <div class="invalid-feedback d-block">{{ password_form.new_password2.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="update_password" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

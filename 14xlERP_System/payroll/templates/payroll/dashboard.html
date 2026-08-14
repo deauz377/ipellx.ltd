@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Payroll Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-4">Payroll Management Dashboard</h1>
+            <p class="lead">Salary Management and Payment Processing</p>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Employees on Payroll</h5>
+                    <p class="card-text display-6">{{ total_employees }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Payroll Runs</h5>
+                    <p class="card-text display-6">{{ total_payroll_runs }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Payslips</h5>
+                    <p class="card-text display-6">{{ pending_payslips }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Payouts</h5>
+                    <p class="card-text">KES {{ total_payouts }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Quick Actions</h3>
+            <div class="btn-group" role="group">
+                <a href="{% url 'payroll:structure_list' %}" class="btn btn-primary">Salary Structures</a>
+                <a href="{% url 'payroll:run_list' %}" class="btn btn-success">Payroll Runs</a>
+                <a href="{% url 'payroll:allowance_list' %}" class="btn btn-warning">Allowances</a>
+                <a href="{% url 'payroll:deduction_list' %}" class="btn btn-info">Deductions</a>
+                <a href="{% url 'payroll:period_list' %}" class="btn btn-secondary">Pay Periods</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

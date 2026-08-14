@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Invoice Details{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4">Invoice Details</h1>
+                    <p class="lead">View invoice details and payment status.</p>
+                </div>
+                <a href="{% url 'accounting:invoice_list' %}" class="btn btn-outline-secondary">Back to Invoices</a>
+            </div>
+            <hr>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Invoice Number:</strong> {{ invoice.invoice_number }}</p>
+            <p><strong>Customer:</strong> {{ invoice.customer_name }}</p>
+            <p><strong>Status:</strong> {{ invoice.get_status_display }}</p>
+            <p><strong>Total Amount:</strong> KES {{ invoice.total_amount|floatformat:2 }}</p>
+            <p><strong>Paid Amount:</strong> KES {{ invoice.paid_amount|floatformat:2 }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

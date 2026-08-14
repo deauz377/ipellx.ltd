@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Bill Details{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4">Bill Details</h1>
+                    <p class="lead">View supplier bill information and payment status.</p>
+                </div>
+                <a href="{% url 'accounting:bill_list' %}" class="btn btn-outline-secondary">Back to Bills</a>
+            </div>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{{ bill.bill_number }}</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Vendor:</strong> {{ bill.vendor }}</p>
+                            <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
+                            <p><strong>Due Date:</strong> {{ bill.due_date }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> {{ bill.get_status_display }}</p>
+                            <p><strong>Total Amount:</strong> KES {{ bill.total_amount|floatformat:2 }}</p>
+                            <p><strong>Paid Amount:</strong> KES {{ bill.paid_amount|floatformat:2 }}</p>
+                        </div>
+                    </div>
+
+                    {% if bill.notes %}
+                    <div class="mb-3">
+                        <h5>Notes</h5>
+                        <p class="text-muted">{{ bill.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Payment Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Balance Due:</strong> KES {{ bill.balance_due|floatformat:2 }}</p>
+                    <p><strong>Payment Terms:</strong> {{ bill.payment_terms|default:"N/A" }}</p>
+                    <p><strong>Email:</strong> {{ bill.vendor_email|default:"N/A" }}</p>
+                    <p><strong>Phone:</strong> {{ bill.vendor_phone|default:"N/A" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

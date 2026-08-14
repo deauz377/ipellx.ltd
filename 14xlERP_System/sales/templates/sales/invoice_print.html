@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ invoice.id }}</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1F2937;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .no-print {
+            text-align: right;
+            margin-bottom: 24px;
+        }
+        .no-print button {
+            padding: 10px 20px;
+            font-size: 15px;
+            background: #2C5F8D;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #1E3A5F;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #1E3A5F;
+        }
+        .header .invoice-meta {
+            text-align: right;
+            font-size: 14px;
+        }
+        .parties {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .parties div {
+            font-size: 14px;
+        }
+        .parties h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6B7280;
+            margin-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid #E0E4E8;
+            font-size: 14px;
+        }
+        th {
+            background: #F5F7FA;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6B7280;
+        }
+        .text-right { text-align: right; }
+        .totals {
+            width: 300px;
+            margin-left: auto;
+        }
+        .totals table td {
+            border: none;
+            padding: 6px;
+        }
+        .totals .grand-total td {
+            font-weight: bold;
+            font-size: 16px;
+            border-top: 2px solid #1E3A5F;
+        }
+        .balance-due {
+            color: #EF4444;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #9CA3AF;
+            text-align: center;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+    <div class="header">
+        <div>
+            <h1>{{ invoice.tenant.name|default:"Business" }}</h1>
+        </div>
+        <div class="invoice-meta">
+            <div><strong>Invoice #{{ invoice.id }}</strong></div>
+            <div>{{ invoice.date|date:"d M Y, H:i" }}</div>
+        </div>
+    </div>
+
+    <div class="parties">
+        <div>
+            <h3>Billed To</h3>
+            <div>{{ invoice.customer.name }}</div>
+            {% if invoice.customer.phone %}<div>{{ invoice.customer.phone }}</div>{% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.product_name }}</td>
+                <td class="text-right">{{ item.qty }}</td>
+                <td class="text-right">{{ item.price|floatformat:2 }}</td>
+                <td class="text-right">{{ item.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center; color:#9CA3AF;">No items on this invoice</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            {% if invoice.discount %}
+            <tr>
+                <td>Discount</td>
+                <td class="text-right">-{{ invoice.discount|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="grand-total">
+                <td>Total</td>
+                <td class="text-right">KES {{ invoice.total|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Paid</td>
+                <td class="text-right">KES {{ invoice.paid|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Balance Due</td>
+                <td class="text-right balance-due">KES {{ invoice.balance|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Thank you for your business.
+    </div>
+</body>
+</html>

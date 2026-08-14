@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Overview - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h1><i class="bi bi-graph-up"></i> Sales Overview</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'sales:daily_sales_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-journal-text"></i> Daily Ledger
+            </a>
+            <a href="{% url 'sales:quick_sale' %}" class="btn btn-success">
+                <i class="bi bi-cash-coin"></i> Record Sale
+            </a>
+            <a href="{% url 'sales:invoice_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Invoice
+            </a>
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'sales:product_profit_report' %}" class="btn btn-outline-success">
+                <i class="bi bi-tags"></i> Profit by Category
+            </a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-arrow-down-up"></i> Export / Import
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><h6 class="dropdown-header">Export</h6></li>
+                    <li><a class="dropdown-item" href="{% url 'sales:export_invoices_csv' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Invoices (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'sales:export_daily_sales_csv' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Daily Sales (CSV)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><h6 class="dropdown-header">Import</h6></li>
+                    <li><a class="dropdown-item" href="{% url 'sales:import_daily_sales_csv' %}"><i class="bi bi-upload"></i> Daily Sales (CSV)</a></li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">KES {{ sales_today|default:0 }}</div>
+            <div class="label">Today's Sales</div>
+            <i class="bi bi-cash" style="font-size: 2rem; color: var(--success); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">KES {{ sales_month|default:0 }}</div>
+            <div class="label">This Month's Sales</div>
+            <i class="bi bi-calendar-check" style="font-size: 2rem; color: var(--primary); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">KES {{ outstanding_amount|default:0 }}</div>
+            <div class="label">Outstanding Payments</div>
+            <i class="bi bi-clock" style="font-size: 2rem; color: var(--warning); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">{{ recent_invoices|length }}</div>
+            <div class="label">Total Invoices</div>
+            <i class="bi bi-receipt" style="font-size: 2rem; color: var(--primary-dark); margin-top: 10px;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Invoices -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-receipt"></i> Recent Invoices</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.customer.name }}</td>
+                                <td>{{ invoice.date|date:"M d, Y" }}</td>
+                                <td>KES {{ invoice.total }}</td>
+                                <td>
+                                    {% if invoice.paid >= invoice.total %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif invoice.paid > 0 %}
+                                        <span class="badge bg-warning">Partial</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-list"></i> View All Invoices
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-receipt" style="font-size: 3rem; color: var(--border-dark);"></i>
+                    <p class="text-muted mt-2">No invoices yet. <a href="{% url 'sales:invoice_create' %}">Create your first invoice</a></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products & Quick Actions -->
+    <div class="col-md-4">
+        <!-- Top Selling Products -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-trophy"></i> Top Products</h5>
+            </div>
+            <div class="card-body">
+                {% if top_products %}
+                <ul class="list-group list-group-flush">
+                    {% for product in top_products %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ product.product__name }}
+                        <span class="badge bg-primary rounded-pill">{{ product.total_quantity }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">No sales data yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'sales:invoice_create' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> New Invoice
+                    </a>
+                    <a href="{% url 'sales:order_create' %}" class="btn btn-outline-success">
+                        <i class="bi bi-basket"></i> New Order
+                    </a>
+                    <a href="{% url 'sales:order_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-list"></i> View Orders
+                    </a>
+                    <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-box-seam"></i> Check Inventory
+                    </a>
+                    <a href="{% url 'customers:customer_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-people"></i> Manage Customers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

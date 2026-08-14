@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}HR Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4">HR Management Dashboard</h1>
+                    <p class="lead">Welcome to the Human Resources Management System</p>
+                </div>
+                <div>
+                    <p class="text-muted">Logged in as: <strong>{{ user.get_full_name }}</strong></p>
+                </div>
+            </div>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Employees</h5>
+                    <p class="card-text display-6">{{ total_employees }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Active Employees</h5>
+                    <p class="card-text display-6">{{ active_employees }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Leave Requests</h5>
+                    <p class="card-text display-6">{{ pending_leave_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Open Positions</h5>
+                    <p class="card-text display-6">{{ open_positions }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3><i class="bi bi-lightning-fill"></i> Quick Actions</h3>
+            <div class="btn-group flex-wrap" role="group">
+                <a href="{% url 'hr:employee_list' %}" class="btn btn-primary">
+                    <i class="bi bi-people"></i> View Employees
+                </a>
+                <a href="{% url 'hr:department_list' %}" class="btn btn-info">
+                    <i class="bi bi-diagram-3"></i> Departments
+                </a>
+                <a href="{% url 'hr:leave_request_list' %}" class="btn btn-warning">
+                    <i class="bi bi-calendar-check"></i> Leave Requests
+                </a>
+                <a href="{% url 'hr:attendance_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-clock-history"></i> Attendance
+                </a>
+                <a href="{% url 'hr:recruitment_list' %}" class="btn btn-success">
+                    <i class="bi bi-briefcase"></i> Recruitment
+                </a>
+                <a href="{% url 'payroll:dashboard' %}" class="btn btn-dark">
+                    <i class="bi bi-cash-stack"></i> Payroll
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Portal Link -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-info" role="alert">
+                <h5><i class="bi bi-info-circle"></i> For Staff Members</h5>
+                <p class="mb-2">Staff members should use the <strong>Staff Portal</strong> to submit leave requests, clock in/out, and view their records.</p>
+                <a href="{% url 'hr:staff_portal' %}" class="btn btn-info">
+                    <i class="bi bi-person-badge"></i> Go to Staff Portal
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Info -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Leave Management</h5>
+                </div>
+                <div class="card-body">
+                    <p>View, approve, and reject employee leave requests.</p>
+                    <a href="{% url 'hr:leave_request_list' %}" class="btn btn-warning btn-sm">
+                        <i class="bi bi-arrow-right"></i> Manage Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Attendance Tracking</h5>
+                </div>
+                <div class="card-body">
+                    <p>Monitor employee attendance records and manage clock in/out.</p>
+                    <a href="{% url 'hr:attendance_list' %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-right"></i> View Attendance
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-group.flex-wrap {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .btn-group.flex-wrap .btn {
+        flex: 0 1 auto;
+    }
+</style>
+{% endblock %}

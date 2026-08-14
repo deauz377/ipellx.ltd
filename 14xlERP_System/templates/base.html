@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}14xlevel ERP{% endblock %}</title>
+    <script>
+        // Set the theme before the page paints, so there's no flash of the
+        // wrong theme while the rest of the page loads.
+        (function () {
+            var saved = localStorage.getItem('theme');
+            if (saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #1E3A5F;
+            --primary: #2C5F8D;
+            --primary-light: #3D7BA8;
+            --bg-primary: #F5F7FA;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E0E4E8;
+            --border-dark: #D1D5DB;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --info: #3B82F6;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --primary-dark: #14283F;
+            --primary: #2C5F8D;
+            --primary-light: #3D7BA8;
+            --bg-primary: #12161C;
+            --bg-secondary: #1B212B;
+            --bg-tertiary: #232A35;
+            --text-primary: #E5E7EB;
+            --text-secondary: #9CA3AF;
+            --text-muted: #6B7280;
+            --border: #2C3440;
+            --border-dark: #3A4451;
+            --success: #34D399;
+            --warning: #FBBF24;
+            --error: #F87171;
+            --info: #60A5FA;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .sidebar a:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        [data-theme="dark"] .sidebar a.active {
+            background-color: rgba(61, 123, 168, 0.2);
+        }
+
+        [data-theme="dark"] .table-hover tbody tr:hover,
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) {
+            background-color: var(--bg-tertiary);
+        }
+
+        [data-theme="dark"] .badge-success { background-color: rgba(52, 211, 153, 0.18); color: #6EE7B7; }
+        [data-theme="dark"] .badge-warning { background-color: rgba(251, 191, 36, 0.18); color: #FCD34D; }
+        [data-theme="dark"] .badge-danger  { background-color: rgba(248, 113, 113, 0.18); color: #FCA5A5; }
+        [data-theme="dark"] .badge-info    { background-color: rgba(96, 165, 250, 0.18); color: #93C5FD; }
+
+        [data-theme="dark"] .alert-success { background-color: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.3); color: #6EE7B7; }
+        [data-theme="dark"] .alert-danger  { background-color: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.3); color: #FCA5A5; }
+        [data-theme="dark"] .alert-warning { background-color: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.3); color: #FCD34D; }
+        [data-theme="dark"] .alert-info    { background-color: rgba(96, 165, 250, 0.1); border-color: rgba(96, 165, 250, 0.3); color: #93C5FD; }
+
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: var(--bg-tertiary);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Fix text that goes dark-on-dark in dark mode */
+        [data-theme="dark"] .stat-card .number {
+            color: var(--primary-light);
+        }
+
+        [data-theme="dark"] .sidebar a.active {
+            color: var(--primary-light);
+        }
+
+        [data-theme="dark"] .sidebar a:hover {
+            color: var(--primary-light);
+        }
+
+        /* Bootstrap's own components (card-title, text-muted, form-text,
+           small, links, borders, etc.) read from these Bootstrap variables
+           rather than our custom ones above -- override them too so
+           built-in classes don't stay stuck on light-mode grays. */
+        [data-theme="dark"] {
+            --bs-body-color: var(--text-primary);
+            --bs-body-bg: var(--bg-primary);
+            --bs-secondary-color: var(--text-secondary);
+            --bs-secondary-bg: var(--bg-tertiary);
+            --bs-tertiary-color: var(--text-muted);
+            --bs-tertiary-bg: var(--bg-tertiary);
+            --bs-emphasis-color: var(--text-primary);
+            --bs-heading-color: var(--text-primary);
+            --bs-border-color: var(--border);
+            --bs-border-color-translucent: var(--border);
+            --bs-link-color: var(--primary-light);
+            --bs-link-hover-color: #6FA8D6;
+            --bs-code-color: #F0ABFC;
+        }
+
+        [data-theme="dark"] .card-title,
+        [data-theme="dark"] .card-text,
+        [data-theme="dark"] label,
+        [data-theme="dark"] .form-label,
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+        [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        .theme-toggle-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-primary);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .navbar {
+            background-color: var(--primary-dark);
+            box-shadow: var(--shadow-md);
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: white !important;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand img {
+            height: 50px;
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: white !important;
+        }
+
+        .navbar-nav .nav-link.active {
+            color: white !important;
+            font-weight: 700;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+        }
+
+        .sidebar {
+            background-color: var(--primary-dark);
+            padding: 16px 0;
+            box-shadow: var(--shadow-md);
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            bottom: 0;
+            width: 240px;
+            overflow-y: auto;
+            z-index: 1030;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar h5 {
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            border-radius: 0;
+            margin-bottom: 2px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: white;
+            border-left-color: var(--primary-light);
+        }
+
+        .sidebar a.active {
+            background-color: rgba(255, 255, 255, 0.12);
+            color: white;
+            border-left-color: white;
+            font-weight: 600;
+        }
+
+        .topbar {
+            background-color: var(--primary-dark);
+            box-shadow: var(--shadow-md);
+            border-bottom: 1px solid var(--border-dark);
+            height: 60px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1040;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .sidebar-toggle-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            padding: 4px 8px;
+            margin-right: 8px;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 60px 0 0 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1025;
+        }
+
+        .main-content {
+            margin-left: 240px;
+            margin-top: 60px;
+            padding: 24px;
+            min-height: calc(100vh - 60px);
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background-color: var(--bg-secondary);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            background-color: var(--primary-dark);
+            color: white;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0 !important;
+            font-weight: 600;
+            border: none;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 25px;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--primary);
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+
+        .stat-card .label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-custom {
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #D97706;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #DC2626;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #F9FAFB;
+        }
+
+        .table {
+            color: var(--text-primary);
+        }
+
+        .table-striped > tbody > tr:nth-of-type(odd) {
+            background-color: #F9FAFB;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-warning {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge-danger {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge-info {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: 1px solid;
+        }
+
+        .alert-success {
+            background-color: #F0FDF4;
+            border-color: #BBEF63;
+            color: #166534;
+        }
+
+        .alert-danger {
+            background-color: #FEF2F2;
+            border-color: #FECACA;
+            color: #991B1B;
+        }
+
+        .alert-warning {
+            background-color: #FFFBEB;
+            border-color: #FDE68A;
+            color: #92400E;
+        }
+
+        .alert-info {
+            background-color: #F0F9FF;
+            border-color: #BAE6FD;
+            color: #1E40AF;
+        }
+
+        /* Sidebar collapses to an overlay on small screens */
+        @media (max-width: 991px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-backdrop.open {
+                display: block;
+            }
+            .sidebar-toggle-btn {
+                display: inline-block;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.2rem;
+            }
+            .stat-card {
+                margin-bottom: 15px;
+                padding: 15px;
+            }
+            .stat-card .number {
+                font-size: 1.8rem;
+            }
+            .btn-custom {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            .table-responsive {
+                font-size: 0.85rem;
+            }
+            .card-header h5 {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .main-content {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            .stat-card {
+                text-align: center;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Top bar -->
+    <nav class="topbar">
+        <div class="d-flex align-items-center">
+            <button type="button" id="sidebarToggleBtn" class="sidebar-toggle-btn" aria-label="Toggle menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <a class="navbar-brand fw-bold mb-0" href="/">
+                <i class="bi bi-graph-up"></i> 14xlevel ERP
+            </a>
+        </div>
+        <ul class="navbar-nav flex-row align-items-center mb-0">
+            <li class="nav-item me-2">
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark mode">
+                    <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
+                </button>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin"><i class="bi bi-gear"></i></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:account_settings' %}">
+                    <i class="bi bi-person"></i> {{ user.username }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <form method="post" action="{% url 'core:logout' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link btn btn-link" style="border: none; background: none;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Left sidebar -->
+    <aside class="sidebar" id="appSidebar">
+        <ul class="list-unstyled mb-0">
+            <li>
+                <a class="{% if request.path == '/' %}active{% endif %}" href="/">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'sales' %}active{% endif %}" href="/sales/">
+                    <i class="bi bi-receipt"></i> Sales
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'expenses' %}active{% endif %}" href="{% url 'expenses:expense_list' %}">
+                    <i class="bi bi-bag"></i> Purchases
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'inventory' %}active{% endif %}" href="/inventory/">
+                    <i class="bi bi-box2"></i> Inventory
+                </a>
+            </li>
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'accounting' %}active{% endif %}" href="{% url 'accounting:dashboard' %}">
+                    <i class="bi bi-calculator"></i> Accounting
+                </a>
+            </li>
+            {% endif %}
+            {% if user.role == 'OWNER' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'savings_goal_list' or request.resolver_match.url_name == 'savings_goal_detail' %}active{% endif %}" href="{% url 'accounting:savings_goal_list' %}">
+                    <i class="bi bi-piggy-bank"></i> Savings
+                </a>
+            </li>
+            {% endif %}
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'hr' %}active{% endif %}" href="{% url 'hr:dashboard' %}">
+                    <i class="bi bi-people"></i> HR & Payroll
+                </a>
+            </li>
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'trial_balance' %}active{% endif %}" href="{% url 'accounting:trial_balance' %}">
+                    <i class="bi bi-bar-chart"></i> Reports
+                </a>
+            </li>
+            {% endif %}
+            {% if user.role == 'OWNER' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'team_activity' %}active{% endif %}" href="{% url 'team_activity' %}">
+                    <i class="bi bi-person-check"></i> Team Activity
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'staff_portal' %}active{% endif %}" href="{% url 'hr:staff_portal' %}">
+                    <i class="bi bi-person-badge"></i> CEO Portal
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'dashboard' and 'payroll' in request.resolver_match.namespaces %}active{% endif %}" href="{% url 'payroll:dashboard' %}">
+                    <i class="bi bi-cash-stack"></i> Payroll
+                </a>
+            </li>
+            {% elif user.role == 'MANAGER' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'staff_portal' %}active{% endif %}" href="{% url 'hr:staff_portal' %}">
+                    <i class="bi bi-person-badge"></i> Manager Portal
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'dashboard' and 'payroll' in request.resolver_match.namespaces %}active{% endif %}" href="{% url 'payroll:dashboard' %}">
+                    <i class="bi bi-cash-stack"></i> Payroll
+                </a>
+            </li>
+            {% else %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'staff_portal' %}active{% endif %}" href="{% url 'hr:staff_portal' %}">
+                    <i class="bi bi-person-badge"></i> Staff Portal
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var sidebar = document.getElementById('appSidebar');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var toggleBtn = document.getElementById('sidebarToggleBtn');
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                backdrop.classList.remove('open');
+            }
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                    backdrop.classList.toggle('open');
+                });
+            }
+            if (backdrop) {
+                backdrop.addEventListener('click', closeSidebar);
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            var htmlEl = document.documentElement;
+            var toggleBtn = document.getElementById('themeToggleBtn');
+            var toggleIcon = document.getElementById('themeToggleIcon');
+
+            function updateIcon() {
+                var isDark = htmlEl.getAttribute('data-theme') === 'dark';
+                toggleIcon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+            }
+
+            updateIcon();
+
+            toggleBtn.addEventListener('click', function () {
+                var isDark = htmlEl.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    htmlEl.removeAttribute('data-theme');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    htmlEl.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+                updateIcon();
+            });
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

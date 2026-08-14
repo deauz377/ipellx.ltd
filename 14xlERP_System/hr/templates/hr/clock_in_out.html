@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Clock In/Out - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body text-center py-5">
+                <h1 class="h4 mb-1"><i class="bi bi-clock"></i> {{ request.user.username }}</h1>
+                <p class="text-muted mb-4">Today, {{ record.date }}</p>
+
+                {% if not record.check_in_time %}
+                    <p class="mb-4">You haven't clocked in yet today.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="clock_in">
+                        <button type="submit" class="btn btn-success btn-lg px-5">
+                            <i class="bi bi-box-arrow-in-right"></i> Clock In
+                        </button>
+                    </form>
+                {% elif not record.check_out_time %}
+                    <p class="mb-1">Clocked in at <strong>{{ record.check_in_time|time:"H:i" }}</strong></p>
+                    <p class="text-muted mb-4">Don't forget to clock out when you leave.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="clock_out">
+                        <button type="submit" class="btn btn-danger btn-lg px-5">
+                            <i class="bi bi-box-arrow-right"></i> Clock Out
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="mb-1">Clocked in at <strong>{{ record.check_in_time|time:"H:i" }}</strong></p>
+                    <p class="mb-4">Clocked out at <strong>{{ record.check_out_time|time:"H:i" }}</strong></p>
+                    <span class="badge bg-success">Done for today</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Last 7 days</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>In</th>
+                            <th>Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in recent %}
+                        <tr>
+                            <td>{{ rec.date }}</td>
+                            <td>{% if rec.check_in_time %}{{ rec.check_in_time|time:"H:i" }}{% else %}—{% endif %}</td>
+                            <td>{% if rec.check_out_time %}{{ rec.check_out_time|time:"H:i" }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No records yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

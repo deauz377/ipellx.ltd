@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee }} - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-person-badge"></i> {{ employee }}</h1>
+    <div>
+        <a href="{% url 'hr:employee_edit' employee.pk %}" class="btn btn-outline-primary">Edit</a>
+        <a href="{% url 'hr:employee_list' %}" class="btn btn-outline-secondary">Back</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Employment Details</div>
+            <div class="card-body">
+                <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+                <p><strong>Department:</strong> {{ employee.department.name|default:"—" }}</p>
+                <p><strong>Position:</strong> {{ employee.position.title|default:"—" }}</p>
+                <p><strong>Manager:</strong> {{ employee.manager|default:"—" }}</p>
+                <p><strong>Employment Type:</strong> {{ employee.get_employment_type_display }}</p>
+                <p><strong>Status:</strong> {{ employee.get_employment_status_display }}</p>
+                <p><strong>Date of Joining:</strong> {{ employee.date_of_joining }}</p>
+                {% if employee.date_of_termination %}<p><strong>Date of Termination:</strong> {{ employee.date_of_termination }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Contact</div>
+            <div class="card-body">
+                <p><strong>Phone:</strong> {{ employee.phone_number|default:"—" }}</p>
+                <p><strong>Mobile:</strong> {{ employee.mobile_number|default:"—" }}</p>
+                <p><strong>M-Pesa Number:</strong> {{ employee.mpesa_number|default:"—" }}</p>
+                <p><strong>Address:</strong> {{ employee.address|default:"—" }}</p>
+                <p><strong>Emergency Contact:</strong> {{ employee.emergency_contact_name|default:"—" }} ({{ employee.emergency_contact_relationship|default:"—" }}) {{ employee.emergency_contact_phone }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Recent Leave Requests</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        {% for lr in leave_requests %}
+                        <tr><td>{{ lr }}</td></tr>
+                        {% empty %}
+                        <tr><td class="text-muted text-center py-3">No leave requests yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Recent Advances</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        {% for adv in advances %}
+                        <tr><td>{{ adv }}</td></tr>
+                        {% empty %}
+                        <tr><td class="text-muted text-center py-3">No advances recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Recent Performance Reviews</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        {% for pr in performance_reviews %}
+                        <tr><td>{{ pr }}</td></tr>
+                        {% empty %}
+                        <tr><td class="text-muted text-center py-3">No reviews yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

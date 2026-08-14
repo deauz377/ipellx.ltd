@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Team Activity - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people"></i> Team Activity</h1>
+</div>
+
+<p class="text-muted mb-4">
+    Sales figures are for the current month (from {{ month_start }}). Hours are for the current week (from {{ week_start }}).
+</p>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Invoices (month)</th>
+                    <th>Invoice total</th>
+                    <th>Daily ledger total</th>
+                    <th>Total sales (month)</th>
+                    <th>Hours (this week)</th>
+                    <th>Last activity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.user.username }}</td>
+                    <td>
+                        {% if row.user.role == 'MANAGER' %}
+                            <span class="badge bg-info">Manager</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Staff</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ row.invoice_count }}</td>
+                    <td>{{ row.invoice_total|floatformat:2 }}</td>
+                    <td>{{ row.daily_sales_total|floatformat:2 }}</td>
+                    <td class="fw-bold">{{ row.sales_total_month|floatformat:2 }}</td>
+                    <td>{{ row.hours_this_week }}</td>
+                    <td class="text-muted small">
+                        {% if row.last_activity %}
+                            {{ row.last_activity|date:"d M, H:i" }}
+                        {% else %}
+                            No activity yet
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        No Manager or Staff accounts yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3">
+    Hours are calculated from HR attendance check-in/check-out records. If someone hasn't been checked in via HR, their hours will show as 0 here even if they were working.
+</p>
+{% endblock %}

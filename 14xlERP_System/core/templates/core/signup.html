@@ -1,0 +1,46 @@
+{% extends 'core/auth_base.html' %}
+
+{% block title %}Sign Up - 14xlevel ERP{% endblock %}
+
+{% block auth_content %}
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Start your {{ trial_days }}-day free trial. No payment needed to get started.
+    </p>
+
+    {% if form.non_field_errors %}
+        <div class="auth-errors">
+            {% for error in form.non_field_errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="id_business_name">Business Name</label>
+        {{ form.business_name }}
+        {% if form.business_name.errors %}<div class="auth-errors">{{ form.business_name.errors|join:", " }}</div>{% endif %}
+
+        <label for="id_username">Your Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="auth-errors">{{ form.username.errors|join:", " }}</div>{% endif %}
+
+        <label for="id_email">Email (optional)</label>
+        {{ form.email }}
+
+        <label for="id_phone">Phone (optional)</label>
+        {{ form.phone }}
+
+        <label for="id_password1">Password</label>
+        {{ form.password1 }}
+
+        <label for="id_password2">Confirm Password</label>
+        {{ form.password2 }}
+
+        <button type="submit" class="auth-btn">Create Account</button>
+    </form>
+
+    <div class="auth-links">
+        <a href="{% url 'core:login' %}">Already have an account? Sign in</a>
+    </div>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Sale - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-cash-coin"></i> Record Daily Sale</h1>
+        <p class="text-muted mb-0">Add the products sold, and stock + payment are updated automatically.</p>
+    </div>
+</div>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+    <ul class="mb-0">
+        {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="post" id="quick-sale-form" novalidate>
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-person"></i> Customer &amp; Payment</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.customer.label }}</label>
+                    {{ form.customer }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.payment_method.label }}</label>
+                    {{ form.payment_method }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Amount Received</label>
+                    {{ form.amount_received }}
+                    <div class="form-text">Leave blank to mark as paid in full.</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ form.discount.label }}</label>
+                    {{ form.discount }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-basket"></i> Items Sold</div>
+        <div class="card-body p-0">
+            <table class="table mb-0" id="quick-sale-table">
+                <thead>
+                    <tr>
+                        <th style="width: 45%">Product</th>
+                        <th style="width: 15%">Qty</th>
+                        <th style="width: 20%">Price (each)</th>
+                        <th style="width: 20%">Line total</th>
+                    </tr>
+                </thead>
+                <tbody id="quick-sale-rows">
+                    {% for line_form in formset %}
+                    <tr class="quick-sale-row">
+                        <td>{{ line_form.product }}</td>
+                        <td>{{ line_form.qty }}<div class="form-text quick-sale-stock"></div></td>
+                        <td>{{ line_form.price }}</td>
+                        <td class="quick-sale-line-total align-middle">0.00</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">Total</td>
+                        <td class="fw-bold" id="quick-sale-grand-total">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="quick-sale-add-row">
+                <i class="bi bi-plus-circle"></i> Add another line
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Record Sale</button>
+        <a href="{% url 'sales:sales_overview' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const table = document.getElementById('quick-sale-table');
+    const rowsBody = document.getElementById('quick-sale-rows');
+    const totalDiscountInput = document.querySelector('[name="discount"]');
+    const grandTotalEl = document.getElementById('quick-sale-grand-total');
+    const addRowBtn = document.getElementById('quick-sale-add-row');
+    const totalFormsInput = document.querySelector('[name="form-TOTAL_FORMS"]');
+
+    function recalcRow(row) {
+        const productSelect = row.querySelector('.quick-sale-product');
+        const qtyInput = row.querySelector('.quick-sale-qty');
+        const priceInput = row.querySelector('.quick-sale-price');
+        const stockHint = row.querySelector('.quick-sale-stock');
+        const lineTotalCell = row.querySelector('.quick-sale-line-total');
+
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const price = selectedOption ? selectedOption.getAttribute('data-price') : null;
+        const stock = selectedOption ? selectedOption.getAttribute('data-stock') : null;
+
+        if (price && !priceInput.dataset.userEdited) {
+            priceInput.value = price;
+        }
+        if (stock !== null && stock !== undefined && stock !== '') {
+            stockHint.textContent = productSelect.value ? (stock + ' in stock') : '';
+        } else {
+            stockHint.textContent = '';
+        }
+
+        const qty = parseFloat(qtyInput.value) || 0;
+        const priceVal = parseFloat(priceInput.value) || 0;
+        const lineTotal = qty * priceVal;
+        lineTotalCell.textContent = lineTotal.toFixed(2);
+        return lineTotal;
+    }
+
+    function recalcAll() {
+        let grandTotal = 0;
+        rowsBody.querySelectorAll('.quick-sale-row').forEach(function(row) {
+            grandTotal += recalcRow(row);
+        });
+        const discount = parseFloat(totalDiscountInput.value) || 0;
+        grandTotalEl.textContent = (grandTotal - discount).toFixed(2);
+    }
+
+    function wireRow(row) {
+        const productSelect = row.querySelector('.quick-sale-product');
+        const qtyInput = row.querySelector('.quick-sale-qty');
+        const priceInput = row.querySelector('.quick-sale-price');
+
+        productSelect.addEventListener('change', function() {
+            priceInput.dataset.userEdited = '';
+            recalcAll();
+        });
+        qtyInput.addEventListener('input', recalcAll);
+        priceInput.addEventListener('input', function() {
+            priceInput.dataset.userEdited = '1';
+            recalcAll();
+        });
+    }
+
+    rowsBody.querySelectorAll('.quick-sale-row').forEach(wireRow);
+    if (totalDiscountInput) {
+        totalDiscountInput.addEventListener('input', recalcAll);
+    }
+
+    addRowBtn.addEventListener('click', function() {
+        const forms = rowsBody.querySelectorAll('.quick-sale-row');
+        const lastRow = forms[forms.length - 1];
+        const newIndex = forms.length;
+        const newRow = lastRow.cloneNode(true);
+
+        newRow.querySelectorAll('select, input').forEach(function(el) {
+            el.name = el.name.replace(/form-\d+-/, 'form-' + newIndex + '-');
+            el.id = el.id.replace(/form-\d+-/, 'form-' + newIndex + '-');
+            if (el.tagName === 'SELECT') {
+                el.selectedIndex = 0;
+            } else {
+                el.value = '';
+            }
+            delete el.dataset.userEdited;
+        });
+        newRow.querySelector('.quick-sale-line-total').textContent = '0.00';
+        newRow.querySelector('.quick-sale-stock').textContent = '';
+
+        rowsBody.appendChild(newRow);
+        wireRow(newRow);
+        totalFormsInput.value = newIndex + 1;
+    });
+
+    recalcAll();
+})();
+</script>
+{% endblock %}

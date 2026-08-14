@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Accounting Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-4">Accounting Dashboard</h1>
+            <p class="lead">Financial Management and General Ledger</p>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Invoices</h5>
+                    <p class="card-text display-6">{{ total_invoices }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Accounts Receivable</h5>
+                    <p class="card-text">KES {{ total_receivables|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Accounts Payable</h5>
+                    <p class="card-text">KES {{ total_payables|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Journal Entries</h5>
+                    <p class="card-text display-6">{{ total_journal_entries }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Quick Actions</h3>
+            <div class="btn-group" role="group">
+                <a href="{% url 'accounting:invoice_list' %}" class="btn btn-primary">Invoices</a>
+                <a href="{% url 'accounting:bill_list' %}" class="btn btn-danger">Bills</a>
+                <a href="{% url 'accounting:entry_list' %}" class="btn btn-info">Journal Entries</a>
+                <a href="{% url 'accounting:chart_accounts_list' %}" class="btn btn-warning">Chart of Accounts</a>
+                <a href="{% url 'accounting:bank_reconciliation' %}" class="btn btn-secondary">Bank Reconciliation</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

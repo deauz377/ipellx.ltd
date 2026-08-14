@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit Leave Request - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-calendar-check"></i> Submit Leave Request</h1>
+    <a href="{% url 'hr:employee_leave_requests' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Request Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong>Error!</strong>
+                            {{ form.non_field_errors }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.leave_type_name.id_for_label }}" class="form-label">
+                            <strong>{{ form.leave_type_name.label }}</strong>
+                        </label>
+                        {{ form.leave_type_name }}
+                        {% if form.leave_type_name.help_text %}
+                            <div class="form-text">{{ form.leave_type_name.help_text|safe }}</div>
+                        {% endif %}
+                        {% if form.leave_type_name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.leave_type_name.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.start_date.id_for_label }}" class="form-label">
+                                <strong>{{ form.start_date.label }}</strong>
+                            </label>
+                            {{ form.start_date }}
+                            {% if form.start_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.start_date.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.end_date.id_for_label }}" class="form-label">
+                                <strong>{{ form.end_date.label }}</strong>
+                            </label>
+                            {{ form.end_date }}
+                            {% if form.end_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.end_date.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label">
+                            <strong>{{ form.reason.label }}</strong>
+                        </label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="invalid-feedback d-block">{{ form.reason.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Submit Request
+                        </button>
+                        <a href="{% url 'hr:employee_leave_requests' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-light mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Instructions</h5>
+            </div>
+            <div class="card-body small">
+                <p><strong>1. Leave Type:</strong> Enter the type of leave (e.g., Annual, Sick, Maternity)</p>
+                <p><strong>2. Start Date:</strong> Select the first day of your leave</p>
+                <p><strong>3. End Date:</strong> Select the last day of your leave</p>
+                <p><strong>4. Reason:</strong> Briefly explain why you need this leave</p>
+                <p class="mb-0"><strong>5. Submit:</strong> Click "Submit Request" to send for approval</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Status</h5>
+            </div>
+            <div class="card-body small">
+                <p class="mb-2"><strong>Pending:</strong> Waiting for manager approval</p>
+                <p class="mb-2"><strong>Approved:</strong> Your leave has been approved</p>
+                <p class="mb-0"><strong>Rejected:</strong> Your leave was not approved</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

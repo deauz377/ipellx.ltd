@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Invoice #{{ invoice.id }} - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-receipt"></i> Invoice #{{ invoice.id }}</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <h3 class="text-danger">KES {{ invoice.total }}</h3>
+        <p class="text-muted">{{ invoice.date|date:"d M Y H:i" }}</p>
+        <a href="{% url 'sales:invoice_print' invoice.pk %}" target="_blank" class="btn btn-outline-primary">
+            <i class="bi bi-printer"></i> Print / Download PDF
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Customer</h5>
+                <p><strong>{{ invoice.customer.name }}</strong></p>
+                <p>Phone: {{ invoice.customer.phone|default:"—" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Payment Status</h5>
+                <p>Total: <strong>KES {{ invoice.total }}</strong></p>
+                <p>Paid: <strong class="text-success">KES {{ invoice.paid }}</strong></p>
+                <p>Outstanding: <strong class="text-danger">KES {{ invoice.balance|floatformat:2 }}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list"></i> Items</h5>
+        <a href="{% url 'sales:invoice_item_add' invoice.pk %}" class="btn btn-sm btn-success"><i class="bi bi-plus-circle"></i> Add Item</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.qty }}</td>
+                        <td>KES {{ item.price }}</td>
+                        <td><strong>KES {{ item.subtotal|floatformat:2 }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Payments</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.date|date:"d M Y, H:i" }}</td>
+                        <td>{{ payment.get_method_display }}</td>
+                        <td>KES {{ payment.amount|floatformat:2 }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'sales:payment_receipt' payment.pk %}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-receipt"></i> Receipt
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">No payments recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <a href="{% url 'sales:invoice_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+    <div class="col-md-6 text-end">
+        {% if invoice.paid < invoice.total %}
+            <a href="{% url 'sales:payment_record' invoice.pk %}" class="btn btn-success"><i class="bi bi-cash-coin"></i> Record Payment</a>
+        {% endif %}
+        <a href="{% url 'sales:invoice_delete' invoice.pk %}" class="btn btn-danger"><i class="bi bi-trash"></i> Delete Invoice</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Import Daily Sales - 14xlevel ERP{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-upload"></i> Import Daily Sales</h1>
+    <a href="{% url 'sales:daily_sales_list' %}" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p>Upload a CSV file with these columns (column names must match, order doesn't matter):</p>
+        <table class="table table-sm">
+            <thead><tr><th>Date</th><th>Particulars</th><th>Unit</th><th>Quantity</th><th>Unit Price</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>2026-08-11</td><td>Tomatoes</td><td>kg</td><td>10</td><td>80</td><td>optional</td></tr>
+            </tbody>
+        </table>
+        <p class="text-muted small">
+            <strong>Date</strong> must be YYYY-MM-DD. <strong>Unit</strong> can be pcs, kg, g, litre, ml, pack, box, dozen, bag, or other (defaults to "other" if left blank or unrecognised).
+            <strong>Notes</strong> is optional. Rows with bad data are skipped and listed after upload — nothing else is affected.
+        </p>
+
+        <form method="post" enctype="multipart/form-data" class="mt-3">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">CSV File</label>
+                <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Import</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

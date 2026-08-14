@@ -1,0 +1,323 @@
+/**
+ * 14xlevel ERP - Professional Enterprise Color System
+ * Modern corporate palette with high contrast and accessibility
+ *
+ * Usage: Import this file or use CSS variables from base.html
+ * Colors follow enterprise design standards for SaaS applications
+ */
+
+:root {
+  /* ===== PRIMARY COLORS ===== */
+  --primary-dark: #1E3A5F;      /* Deep Navy - Primary brand color */
+  --primary: #2C5F8D;           /* Navy - Main interactive elements */
+  --primary-light: #3D7BA8;     /* Light Navy - Secondary interactive elements */
+
+  /* ===== BACKGROUND COLORS ===== */
+  --bg-primary: #F5F7FA;        /* Off-white - Main background */
+  --bg-secondary: #FFFFFF;      /* White - Card and panel backgrounds */
+  --bg-tertiary: #F9FAFB;       /* Very light gray - Alternate rows/sections */
+
+  /* ===== TEXT COLORS ===== */
+  --text-primary: #1F2937;      /* Dark gray - Primary text */
+  --text-secondary: #6B7280;    /* Medium gray - Secondary text */
+  --text-muted: #9CA3AF;        /* Light gray - Disabled/muted text */
+
+  /* ===== BORDER COLORS ===== */
+  --border: #E0E4E8;            /* Light border */
+  --border-dark: #D1D5DB;       /* Darker border */
+
+  /* ===== SEMANTIC COLORS ===== */
+  --success: #10B981;           /* Green - Success states, positive actions */
+  --warning: #F59E0B;           /* Amber - Warning states, pending actions */
+  --error: #EF4444;             /* Red - Error states, destructive actions */
+  --info: #3B82F6;              /* Blue - Information, secondary actions */
+
+  /* ===== SHADOW SYSTEM ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* ===== RADIUS ===== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+/* ===== COLOR GUIDELINES ===== */
+
+/*
+ * PRIMARY COLORS (Deep Navy Palette)
+ * Use for: Navigation, headers, primary buttons, main interactions
+ * - --primary-dark (#1E3A5F): Navbar, primary headers, active states
+ * - --primary (#2C5F8D): Primary buttons, focused states, hover effects
+ * - --primary-light (#3D7BA8): Secondary interactive elements, accents
+ *
+ * BACKGROUND COLORS
+ * Use for: Page backgrounds, card backgrounds, alternate rows
+ * - --bg-primary (#F5F7FA): Main page background
+ * - --bg-secondary (#FFFFFF): Cards, modals, panels
+ * - --bg-tertiary (#F9FAFB): Table alternate rows, section dividers
+ *
+ * TEXT COLORS (Grayscale)
+ * Use for: All text content
+ * - --text-primary (#1F2937): Main body text, primary content
+ * - --text-secondary (#6B7280): Labels, secondary info, help text
+ * - --text-muted (#9CA3AF): Disabled text, placeholder text
+ *
+ * SEMANTIC COLORS
+ * Use for: Status indicators, notifications, and contextual messaging
+ * - --success (#10B981): Checkmarks, "completed" badges, success messages
+ * - --warning (#F59E0B): Warning alerts, pending status, caution icons
+ * - --error (#EF4444): Errors, delete buttons, failed operations
+ * - --info (#3B82F6): Information alerts, secondary actions, hints
+ */
+
+/* ===== BUTTON VARIANTS ===== */
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-warning {
+  background-color: var(--warning);
+  color: white;
+  border: none;
+}
+
+.btn-warning:hover {
+  background-color: #D97706;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+  background-color: var(--error);
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #DC2626;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* ===== BADGE VARIANTS ===== */
+
+.badge-success {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.badge-warning {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.badge-danger {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.badge-info {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+}
+
+/* ===== ALERT VARIANTS ===== */
+
+.alert-success {
+  background-color: #F0FDF4;
+  border-color: #BBEF63;
+  color: #166534;
+}
+
+.alert-warning {
+  background-color: #FFFBEB;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.alert-danger {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+.alert-info {
+  background-color: #F0F9FF;
+  border-color: #BAE6FD;
+  color: #1E40AF;
+}
+
+/* ===== TABLE STYLING ===== */
+
+.table {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: var(--bg-tertiary);
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.table thead th {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-dark);
+  background-color: var(--bg-tertiary);
+}
+
+/* ===== FORM ELEMENTS ===== */
+
+.form-control {
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(44, 95, 141, 0.25);
+}
+
+.form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ===== CARD STYLING ===== */
+
+.card {
+  border-color: var(--border);
+  background-color: var(--bg-secondary);
+}
+
+.card-header {
+  background-color: var(--primary-dark);
+  color: white;
+  border-color: var(--border);
+}
+
+.card-body {
+  color: var(--text-primary);
+}
+
+.card-footer {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+/* ===== NAVIGATION STYLING ===== */
+
+.navbar {
+  background-color: var(--primary-dark);
+  border-bottom-color: var(--border-dark);
+}
+
+.navbar-brand {
+  color: white;
+}
+
+.navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.navbar-nav .nav-link:hover {
+  color: white;
+}
+
+/* ===== SIDEBAR STYLING ===== */
+
+.sidebar {
+  background-color: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.sidebar a {
+  color: var(--text-secondary);
+  border-left-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.sidebar a:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--primary);
+  border-left-color: var(--primary);
+}
+
+.sidebar a.active {
+  background-color: #E8F1F8;
+  color: var(--primary-dark);
+  border-left-color: var(--primary);
+}
+
+/* ===== STAT CARD STYLING ===== */
+
+.stat-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border);
+  border-top: 3px solid var(--primary);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.stat-card .number {
+  color: var(--primary-dark);
+}
+
+.stat-card .label {
+  color: var(--text-secondary);
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --primary-dark: #0F1E3D;
+    --border-dark: #999999;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

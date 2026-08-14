@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Products - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-upload"></i> Import Products from CSV</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'inventory:product_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Products
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>CSV Import Instructions</h5>
+            </div>
+            <div class="card-body">
+                <h6>CSV Format Requirements:</h6>
+                <p>Your CSV file must have the following columns in this exact order:</p>
+                <div class="alert alert-info">
+                    <strong>Required columns:</strong> Name, SKU, Retail Price, Wholesale Price, Online Price, Quantity, Min Stock, Supplier
+                </div>
+
+                <h6>Example CSV content:</h6>
+                <pre class="bg-light p-3 rounded"><code>Name,SKU,Retail Price,Wholesale Price,Online Price,Quantity,Min Stock,Supplier
+Laptop,LT-001,50000,45000,48000,10,2,Tech Suppliers Ltd
+Mouse,MS-002,1500,1200,1400,50,5,Office Supplies Co</code></pre>
+
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Important:</strong> Suppliers will be created automatically if they don't exist.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Upload CSV File</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">Only CSV files are accepted</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-upload"></i> Import Products
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventory:product_export_csv' %}" class="btn btn-outline-success">
+                        <i class="bi bi-download"></i> Export Current Products
+                    </a>
+                    <a href="{% url 'inventory:product_create' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Single Product
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

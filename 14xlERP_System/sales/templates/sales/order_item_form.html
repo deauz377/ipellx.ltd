@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Item to Order - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-plus-circle"></i> Add Item to Order</h1>
+        <p class="text-muted">Order #{{ order.id }} for {{ order.customer.name }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+                <label>{{ form.product.label }}</label>
+                {{ form.product }}
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>{{ form.qty.label }}</label>
+                    {{ form.qty }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>{{ form.price.label }}</label>
+                    {{ form.price }}
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Add Item</button>
+                <a href="{% url 'sales:order_detail' order.pk %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

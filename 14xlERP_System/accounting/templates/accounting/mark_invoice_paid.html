@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Invoice Paid{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">Mark Invoice Paid</h3>
+                </div>
+                <div class="card-body">
+                    <p>Are you sure you want to mark invoice <strong>{{ invoice.invoice_number }}</strong> as paid?</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'accounting:invoice_detail' invoice.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">Mark as Paid</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

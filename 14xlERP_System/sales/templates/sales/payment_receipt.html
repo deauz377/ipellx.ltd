@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt - Invoice #{{ invoice.id }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            color: #111;
+            max-width: 320px;
+            margin: 40px auto;
+            padding: 0 16px;
+            font-size: 13px;
+        }
+        .no-print {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .no-print button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background: #2C5F8D;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .center { text-align: center; }
+        .header h1 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .header .contact {
+            font-size: 11px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        .divider {
+            border: none;
+            border-top: 1px dashed #333;
+            margin: 10px 0;
+        }
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+        }
+        table.items th {
+            text-align: left;
+            font-size: 11px;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 4px;
+        }
+        table.items th.num, table.items td.num { text-align: right; }
+        table.items td {
+            padding: 3px 0;
+            font-size: 12px;
+            vertical-align: top;
+        }
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 2px 0;
+        }
+        .grand-total {
+            font-size: 16px;
+            font-weight: bold;
+            padding: 6px 0;
+        }
+        .balance-due { color: #b91c1c; font-weight: bold; }
+        .balance-clear { color: #047857; }
+        .footer {
+            margin-top: 16px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .receipt-no {
+            font-size: 11px;
+            text-align: center;
+            margin-top: 12px;
+            color: #555;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+    <div class="header center">
+        <h1>{{ invoice.tenant.name|default:"Business" }}</h1>
+        <div class="contact">
+            {% if invoice.tenant.address %}{{ invoice.tenant.address }}<br>{% endif %}
+            {% if invoice.tenant.phone %}Tel: {{ invoice.tenant.phone }}{% endif %}
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="meta-row"><span>Date</span><span>{{ payment.date|date:"d/m/Y H:i" }}</span></div>
+    <div class="meta-row"><span>Invoice</span><span>#{{ invoice.id }}</span></div>
+    <div class="meta-row"><span>Served by</span><span>{{ invoice.created_by.username|default:"—" }}</span></div>
+    <div class="meta-row"><span>Customer</span><span>{{ invoice.customer.name }}</span></div>
+
+    <hr class="divider">
+
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="num">Qty</th>
+                <th class="num">Price</th>
+                <th class="num">Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.product_name }}</td>
+                <td class="num">{{ item.qty }}</td>
+                <td class="num">{{ item.price|floatformat:2 }}</td>
+                <td class="num">{{ item.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="center">No items on this invoice</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr class="divider">
+
+    {% if invoice.discount %}
+    <div class="totals-row"><span>Discount</span><span>-{{ invoice.discount|floatformat:2 }}</span></div>
+    {% endif %}
+    <div class="totals-row grand-total"><span>TOTAL</span><span>KES {{ invoice.total|floatformat:2 }}</span></div>
+    <div class="totals-row"><span>Paid ({{ payment.get_method_display }})</span><span>KES {{ payment.amount|floatformat:2 }}</span></div>
+    <div class="totals-row {% if balance_after > 0 %}balance-due{% else %}balance-clear{% endif %}">
+        <span>{% if balance_after > 0 %}Balance Due{% else %}Balance{% endif %}</span>
+        <span>{% if balance_after > 0 %}KES {{ balance_after|floatformat:2 }}{% else %}PAID IN FULL{% endif %}</span>
+    </div>
+
+    <hr class="divider">
+
+    <div class="footer">
+        {{ invoice.tenant.receipt_footer|default:"Thank you for your business!" }}
+    </div>
+    <div class="receipt-no">Receipt #{{ payment.id }} &middot; Invoice #{{ invoice.id }}</div>
+</body>
+</html>

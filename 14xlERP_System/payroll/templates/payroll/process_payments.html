@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Process Payments - 14xlevel ERP{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <h4><i class="bi bi-cash-stack"></i> Process Payments</h4>
+        <hr>
+        <p><strong>Payroll Period:</strong> {{ payroll_run.payroll_period }}</p>
+        <p><strong>Status:</strong> {{ payroll_run.get_status_display }}</p>
+        <p><strong>Total Gross:</strong> KES {{ payroll_run.total_gross|floatformat:2 }}</p>
+        <form method="post" class="mt-3">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-cash-stack"></i> Process Payments</button>
+            <a href="{% url 'payroll:run_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Suppliers - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-truck"></i> Suppliers</h1>
+    <a href="{% url 'inventory:supplier_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Supplier</a>
+</div>
+
+{% if suppliers %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Business</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in suppliers %}
+                        <tr>
+                            <td>{{ supplier.name }}</td>
+                            <td>{{ supplier.contact|default:"—" }}</td>
+                            <td>{{ supplier.business.name|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> No suppliers yet. <a href="{% url 'inventory:supplier_create' %}">Add one now!</a></div>
+{% endif %}
+{% endblock %}

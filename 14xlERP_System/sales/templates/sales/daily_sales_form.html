@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Daily Sale - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-journal-plus"></i> Add Daily Sale Entry</h1>
+    <a href="{% url 'sales:daily_sales_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Ledger
+    </a>
+</div>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger">{{ form.non_field_errors }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.date.label }}</label>
+                    {{ form.date }}
+                    {{ form.date.errors }}
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Particulars / Details</label>
+                    {{ form.particulars }}
+                    {{ form.particulars.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Unit</label>
+                    {{ form.unit }}
+                    {{ form.unit.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Quantity</label>
+                    {{ form.quantity }}
+                    {{ form.quantity.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Unit Price</label>
+                    {{ form.unit_price }}
+                    {{ form.unit_price.errors }}
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="w-100">
+                        <label class="form-label text-muted">Line Total (auto)</label>
+                        <input type="text" class="form-control" id="line-total-preview" value="0.00" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {{ form.notes.errors }}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save Entry</button>
+                <a href="{% url 'sales:daily_sales_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const qtyInput = document.getElementById('id_quantity');
+    const priceInput = document.getElementById('id_unit_price');
+    const preview = document.getElementById('line-total-preview');
+
+    function recalc() {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        preview.value = (qty * price).toFixed(2);
+    }
+
+    qtyInput.addEventListener('input', recalc);
+    priceInput.addEventListener('input', recalc);
+    recalc();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Bank Reconciliation - 14xlevel ERP{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-bank"></i> Bank Reconciliation</h1>
+    <a href="{% url 'accounting:bank_account_list' %}" class="btn btn-outline-secondary">Bank Accounts</a>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        {% if accounts %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Bank Account</label>
+                <select name="bank_account" class="form-control" required>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.pk }}">{{ acc.account_name }} ({{ acc.bank_name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Reconciliation Date</label>
+                <input type="date" name="reconciliation_date" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bank Statement Balance</label>
+                <input type="number" step="0.01" name="bank_balance" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Book Balance (per your records)</label>
+                <input type="number" step="0.01" name="book_balance" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Complete Reconciliation</button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">No bank accounts yet. <a href="{% url 'accounting:bank_account_create' %}">Add one</a> before reconciling.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

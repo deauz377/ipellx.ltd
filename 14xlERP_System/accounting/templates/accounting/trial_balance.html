@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Trial Balance{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-4">Trial Balance</h1>
+            <p class="lead">Review debit and credit balances for the chart of accounts.</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5>Total Debits</h5>
+                    <p class="h3">KES {{ total_debits|floatformat:2 }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Total Credits</h5>
+                    <p class="h3">KES {{ total_credits|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Opening Balance</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td>{{ account.account_number }} - {{ account.account_name }}</td>
+                            <td>{{ account.get_account_type_display }}</td>
+                            <td>KES {{ account.opening_balance|floatformat:2 }}</td>
+                            <td>KES {{ account.get_balance|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-muted">No accounts available yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

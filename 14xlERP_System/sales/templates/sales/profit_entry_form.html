@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Profit Entry - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-currency-exchange"></i> Add Profit Entry</h1>
+    <a href="{% url 'sales:profit_entry_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Profit Entries
+    </a>
+</div>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger">{{ form.non_field_errors }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.date.label }}</label>
+                    {{ form.date }}
+                    {{ form.date.errors }}
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.revenue.label }}</label>
+                    {{ form.revenue }}
+                    {{ form.revenue.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.cost.label }}</label>
+                    {{ form.cost }}
+                    {{ form.cost.errors }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.expenses.label }}</label>
+                    {{ form.expenses }}
+                    {{ form.expenses.errors }}
+                </div>
+                <div class="col-12 d-flex align-items-end">
+                    <div class="w-100">
+                        <label class="form-label text-muted">Calculated Profit</label>
+                        <input type="text" class="form-control" id="profit-preview" value="0.00" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                    {{ form.notes.errors }}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save Entry</button>
+                <a href="{% url 'sales:profit_entry_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const revenueInput = document.getElementById('id_revenue');
+    const costInput = document.getElementById('id_cost');
+    const expensesInput = document.getElementById('id_expenses');
+    const preview = document.getElementById('profit-preview');
+
+    function recalc() {
+        const revenue = parseFloat(revenueInput.value) || 0;
+        const cost = parseFloat(costInput.value) || 0;
+        const expenses = parseFloat(expensesInput.value) || 0;
+        preview.value = (revenue - cost - expenses).toFixed(2);
+    }
+
+    revenueInput.addEventListener('input', recalc);
+    costInput.addEventListener('input', recalc);
+    expensesInput.addEventListener('input', recalc);
+    recalc();
+})();
+</script>
+{% endblock %}

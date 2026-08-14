@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Profit by Category - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-tags"></i> Profit by Category</h1>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-auto">
+        <label class="form-label small">From</label>
+        <input type="date" name="start" value="{{ start_date }}" class="form-control">
+    </div>
+    <div class="col-auto">
+        <label class="form-label small">To</label>
+        <input type="date" name="end" value="{{ end_date }}" class="form-control">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{% url 'sales:product_profit_report' %}" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Total Revenue</div>
+            <div class="h4 mb-0">{{ grand_revenue|floatformat:2 }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Total Cost</div>
+            <div class="h4 mb-0">{{ grand_cost|floatformat:2 }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Total Profit</div>
+            <div class="h4 mb-0 text-success">{{ grand_profit|floatformat:2 }}</div>
+        </div></div>
+    </div>
+</div>
+
+{% for category in categories %}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>{{ category.name }}</strong>
+        <span>
+            Revenue: {{ category.revenue|floatformat:2 }} &nbsp;|&nbsp;
+            Cost: {{ category.cost|floatformat:2 }} &nbsp;|&nbsp;
+            <span class="text-success fw-bold">Profit: {{ category.profit|floatformat:2 }}</span>
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty sold</th>
+                    <th>Revenue</th>
+                    <th>Cost</th>
+                    <th>Profit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in category.products %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td>{{ p.qty_sold }}</td>
+                    <td>{{ p.revenue|floatformat:2 }}</td>
+                    <td>{{ p.cost|floatformat:2 }}</td>
+                    <td class="{% if p.profit >= 0 %}text-success{% else %}text-danger{% endif %}">{{ p.profit|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body text-center text-muted py-5">
+    No sold items found for this period. Sales made through Quick Sale or full Invoices with products attached will show up here.
+</div></div>
+{% endfor %}
+
+<p class="text-muted small mt-2">
+    This only covers sales made through invoices (Quick Sale / full invoices) where a product was attached — free-text Daily Sales entries aren't linked to a product or category, so they aren't included here.
+</p>
+{% endblock %}

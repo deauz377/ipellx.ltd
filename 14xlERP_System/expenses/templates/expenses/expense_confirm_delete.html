@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Expense - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Delete Expense</h4>
+    <p>Are you sure you want to delete this {{ expense.get_category_display }} expense for <strong>KES {{ expense.amount }}</strong>? This action cannot be undone.</p>
+</div>
+
+<form method="post" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button>
+    <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
+</form>
+{% endblock %}

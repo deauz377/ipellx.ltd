@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Orders - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-basket"></i> Orders</h1>
+    <a href="{% url 'sales:order_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> New Order</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="search" class="form-label">Search Orders</label>
+                <input type="text" class="form-control" id="search" name="search"
+                       value="{{ search_query }}" placeholder="Search by order number or customer...">
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <a href="{% url 'sales:order_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if orders %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Type</th>
+                        <th>Partner</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>{{ order.get_order_type_display }}</td>
+                            <td>{{ order.partner_name }}</td>
+                            <td>{{ order.date|date:"d M Y" }}</td>
+                            <td>KES {{ order.total|floatformat:2 }}</td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                    <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                                {% elif order.status == 'confirmed' %}
+                                    <span class="badge bg-info">{{ order.get_status_display }}</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-success">{{ order.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'sales:order_detail' order.pk %}" class="btn btn-sm btn-info"><i class="bi bi-eye"></i> View</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> No orders yet. <a href="{% url 'sales:order_create' %}">Create one now!</a></div>
+{% endif %}
+{% endblock %}

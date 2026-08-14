@@ -1,0 +1,31 @@
+from django.urls import path
+from . import views
+
+app_name = 'sales'
+
+urlpatterns = [
+    path('', views.sales_overview, name='sales_overview'),
+    path('quick-sale/', views.quick_sale, name='quick_sale'),
+    path('daily/', views.daily_sales_list, name='daily_sales_list'),
+    path('daily/add/', views.daily_sales_create, name='daily_sales_create'),
+    path('daily/<int:pk>/delete/', views.daily_sales_delete, name='daily_sales_delete'),
+    path('invoices/', views.invoice_list, name='invoice_list'),
+    path('invoices/add/', views.invoice_create, name='invoice_create'),
+    path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
+    path('invoices/<int:pk>/print/', views.invoice_print, name='invoice_print'),
+    path('payments/<int:pk>/receipt/', views.payment_receipt, name='payment_receipt'),
+    path('invoices/<int:pk>/delete/', views.invoice_delete, name='invoice_delete'),
+    path('invoices/<int:invoice_pk>/item/add/', views.invoice_item_add, name='invoice_item_add'),
+    path('invoices/<int:invoice_pk>/payment/add/', views.payment_record, name='payment_record'),
+    path('orders/', views.order_list, name='order_list'),
+    path('orders/add/', views.order_create, name='order_create'),
+    path('orders/<int:pk>/', views.order_detail, name='order_detail'),
+    path('orders/<int:order_pk>/item/add/', views.order_item_add, name='order_item_add'),
+    path('profit/', views.daily_profit_dashboard, name='daily_profit_dashboard'),
+    path('profit/by-category/', views.product_profit_report, name='product_profit_report'),
+    path('profit-entries/', views.profit_entry_list, name='profit_entry_list'),
+    path('profit-entries/add/', views.profit_entry_create, name='profit_entry_create'),
+    path('export/invoices/', views.export_invoices_csv, name='export_invoices_csv'),
+    path('export/daily-sales/', views.export_daily_sales_csv, name='export_daily_sales_csv'),
+    path('import/daily-sales/', views.import_daily_sales_csv, name='import_daily_sales_csv'),
+]

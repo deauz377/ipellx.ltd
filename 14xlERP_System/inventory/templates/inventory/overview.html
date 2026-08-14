@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Overview - 14xlevel ERP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-box-seam"></i> Inventory Overview</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'inventory:product_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Product
+        </a>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">{{ total_products }}</div>
+            <div class="label">Total Products</div>
+            <i class="bi bi-box" style="font-size: 2rem; color: var(--primary); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">{{ total_suppliers }}</div>
+            <div class="label">Total Suppliers</div>
+            <i class="bi bi-truck" style="font-size: 2rem; color: var(--primary-light); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">{{ low_stock_products }}</div>
+            <div class="label">Low Stock Items</div>
+            <i class="bi bi-exclamation-triangle" style="font-size: 2rem; color: var(--error); margin-top: 10px;"></i>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="number">KES {{ total_stock_value }}</div>
+            <div class="label">Stock Value</div>
+            <i class="bi bi-cash-coin" style="font-size: 2rem; color: var(--warning); margin-top: 10px;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Products -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-clock"></i> Recent Products</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_products %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in recent_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td><code>{{ product.sku }}</code></td>
+                                <td>
+                                    {% if product.quantity <= product.minimum_stock %}
+                                        <span class="badge bg-danger">{{ product.quantity }}</span>
+                                    {% else %}
+                                        {{ product.quantity }}
+                                    {% endif %}
+                                </td>
+                                <td>KES {{ product.retail_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-list"></i> View All Products
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-box" style="font-size: 3rem; color: var(--border-dark);"></i>
+                    <p class="text-muted mt-2">No products yet. <a href="{% url 'inventory:product_create' %}">Add your first product</a></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alerts -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_alerts %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> These items need restocking!
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for product in low_stock_alerts %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ product.name }}</strong><br>
+                            <small class="text-muted">SKU: {{ product.sku }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-danger">{{ product.quantity }} left</span><br>
+                            <small class="text-muted">Min: {{ product.minimum_stock }}</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-check-circle" style="font-size: 3rem; color: var(--success);"></i>
+                    <p class="text-success mt-2">All items are well stocked!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'inventory:product_create' %}" class="btn btn-success btn-lg w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i> Add Product
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'inventory:supplier_create' %}" class="btn btn-primary btn-lg w-100 mb-2">
+                            <i class="bi bi-truck"></i> Add Supplier
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                            <i class="bi bi-list"></i> View Products
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'inventory:supplier_list' %}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                            <i class="bi bi-people"></i> View Suppliers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
