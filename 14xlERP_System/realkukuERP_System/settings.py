@@ -243,13 +243,26 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = 'media/'
 MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
 
+# Vercel runs no build step, so collectstatic never happens there. A manifest
+# storage would then raise at runtime on the first {% static %} tag and take
+# /admin/ down with it. Letting WhiteNoise resolve through the staticfiles
+# finders means the admin CSS works with nothing collected and nothing
+# committed, trading away hashed filenames — acceptable here, since no project
+# template uses {% static %} and only Django's own admin depends on it.
+WHITENOISE_USE_FINDERS = env_bool('WHITENOISE_USE_FINDERS', True)
+
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        # Hashes filenames and gzips them so static assets can be cached forever.
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if WHITENOISE_USE_FINDERS
+            # Hashes filenames and gzips them so assets can be cached forever.
+            # Requires collectstatic to have run at build time.
+            else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        ),
     },
 }
 
