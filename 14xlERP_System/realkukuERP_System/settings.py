@@ -54,16 +54,20 @@ if not SECRET_KEY:
             'SUPABASE_S3_BUCKET', 'SUPABASE_S3_ACCESS_KEY', 'SUPABASE_S3_SECRET_KEY',
         )
         _present = [name for name in _expected if os.environ.get(name)]
+        # When none arrive, the useful question is what the host *did* inject,
+        # so list every name. Platform variables showing up while ours do not
+        # narrows it to how they are configured, not whether they exist.
+        _all = sorted(os.environ)
         raise RuntimeError(
             'SECRET_KEY environment variable must be set when DEBUG is off. '
             f'Other expected variables present: {_present or "NONE"}. '
             + (
                 'None of them arrived, so this deployment is not receiving its '
-                'environment variables — check they are saved for this '
-                'environment and redeploy.'
+                'environment variables.'
                 if not _present else
                 'Others did arrive, so SECRET_KEY specifically is missing or misspelled.'
             )
+            + f' Environment holds {len(_all)} names: {_all}'
         )
     SECRET_KEY = 'django-insecure-ve8ddzzo7r=kb45my%ivno5n9n@cy-iv8@nmhe(%f+tf_3%w6u'
 
