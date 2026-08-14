@@ -27,10 +27,21 @@ def env_list(name):
 
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+# Each hosting platform injects the app's own public hostname. Their presence is
+# also how we know we are not on a laptop: DEBUG then defaults to off, so
+# forgetting to set it cannot expose tracebacks and settings to the internet.
+PLATFORM_HOST_VARS = (
+    'VERCEL_PROJECT_PRODUCTION_URL',  # stable production domain
+    'VERCEL_URL',                     # per-deployment preview domain
+    'RENDER_EXTERNAL_HOSTNAME',
+    'RAILWAY_PUBLIC_DOMAIN',
+)
+ON_PLATFORM = any(os.environ.get(name) for name in PLATFORM_HOST_VARS)
+
+DEBUG = env_bool('DEBUG', not ON_PLATFORM)
+
 # In production SECRET_KEY must come from the environment. The insecure literal
 # is only a convenience for local development, where DEBUG is on.
-DEBUG = env_bool('DEBUG', True)
-
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     if not DEBUG:
@@ -39,9 +50,10 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS') or ['127.0.0.1', 'localhost', 'testserver']
 
-# Railway and Render each expose the app's public hostname; trust it automatically
-# so a fresh deploy works before a custom domain is attached.
-for _host_var in ('RAILWAY_PUBLIC_DOMAIN', 'RENDER_EXTERNAL_HOSTNAME'):
+# Trust the platform's own hostname automatically so a fresh deploy answers
+# before any custom domain is attached. Vercel gives every preview deployment a
+# different hostname, so this cannot be hardcoded.
+for _host_var in PLATFORM_HOST_VARS:
     _host = os.environ.get(_host_var)
     if _host and _host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_host)
@@ -134,17 +146,26 @@ WSGI_APPLICATION = 'realkukuERP_System.wsgi.application'
 # local SQLite file so development keeps working with no extra setup.
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
+# Supabase's Supavisor pooler in transaction mode (port 6543) hands each request
+# a different backend connection, so nothing may be held open across requests:
+# persistent connections would pin a pooled slot, and server-side cursors would
+# be opened on one backend and read from another, failing intermittently under
+# load. Session mode (5432) has neither restriction.
+PGBOUNCER_MODE = env_bool('PGBOUNCER_MODE', False) or ':6543' in (DATABASE_URL or '')
+
 if DATABASE_URL:
     import dj_database_url
 
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
+            conn_max_age=0 if PGBOUNCER_MODE else 600,
+            conn_health_checks=not PGBOUNCER_MODE,
             ssl_require=not DEBUG,
         )
     }
+    if PGBOUNCER_MODE:
+        DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 else:
     DB_PATH = BASE_DIR / '14xlERP' / 'db.sqlite3'
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -231,3 +252,32 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
+
+# Supabase Storage speaks S3, so uploads can go to object storage instead of the
+# container filesystem. Set all four variables to switch it on; leaving any unset
+# keeps the local filesystem, which is what development wants.
+SUPABASE_S3_ENDPOINT = os.environ.get('SUPABASE_S3_ENDPOINT', '')
+SUPABASE_S3_ACCESS_KEY = os.environ.get('SUPABASE_S3_ACCESS_KEY', '')
+SUPABASE_S3_SECRET_KEY = os.environ.get('SUPABASE_S3_SECRET_KEY', '')
+SUPABASE_S3_BUCKET = os.environ.get('SUPABASE_S3_BUCKET', '')
+
+if all((SUPABASE_S3_ENDPOINT, SUPABASE_S3_ACCESS_KEY, SUPABASE_S3_SECRET_KEY, SUPABASE_S3_BUCKET)):
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'endpoint_url': SUPABASE_S3_ENDPOINT,
+            'access_key': SUPABASE_S3_ACCESS_KEY,
+            'secret_key': SUPABASE_S3_SECRET_KEY,
+            'bucket_name': SUPABASE_S3_BUCKET,
+            'region_name': os.environ.get('SUPABASE_S3_REGION', 'us-east-1'),
+            # Supabase only serves path-style URLs; the default virtual-host
+            # style resolves to a hostname that does not exist.
+            'addressing_style': 'path',
+            # The bucket is private, so links are time-limited signed URLs.
+            # Payroll receipts and resumes should not be world-readable.
+            'querystring_auth': True,
+            'querystring_expire': 3600,
+            'file_overwrite': False,
+            'default_acl': None,
+        },
+    }

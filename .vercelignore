@@ -1,0 +1,21 @@
+# Keep the serverless bundle small — everything here is irrelevant at runtime.
+*.md
+!requirements.txt
+14xlERP_System/*.md
+14xlERP_System/COLOR_PALETTE_REFERENCE.html
+ipell.jpeg
+render.yaml
+Procfile
+build.sh
+
+# Never ship a database or local secrets
+*.sqlite3
+14xlERP/
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+.git/
+.claude/

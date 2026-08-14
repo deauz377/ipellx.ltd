@@ -32,8 +32,11 @@ urlpatterns = [
     path('accounting/', include('accounting.urls')),
 ]
 
-# WhiteNoise serves STATIC_ROOT but not user uploads, so route MEDIA_URL through
-# Django itself. Fine at this scale; move to object storage if uploads grow.
-urlpatterns += [
-    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
-]
+# WhiteNoise serves STATIC_ROOT but not user uploads, so when files live on a
+# local disk they need routing through Django itself. With Supabase Storage the
+# file URLs are signed links to the bucket and never reach this app, so the
+# route would only point at a directory that does not exist.
+if settings.STORAGES['default']['BACKEND'].endswith('FileSystemStorage'):
+    urlpatterns += [
+        path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
