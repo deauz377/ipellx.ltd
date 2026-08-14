@@ -1,6 +1,5 @@
 {
   "framework": null,
-  "buildCommand": "echo 'no build step needed — see api/index.py'",
   "functions": {
     "api/index.py": {
       "includeFiles": "**"
