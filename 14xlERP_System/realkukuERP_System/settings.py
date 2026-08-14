@@ -45,7 +45,26 @@ DEBUG = env_bool('DEBUG', not ON_PLATFORM)
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     if not DEBUG:
-        raise RuntimeError('SECRET_KEY environment variable must be set when DEBUG is off.')
+        # Report which of the other expected variables arrived. If some did,
+        # this key alone is missing or misspelled; if none did, the deployment
+        # is not receiving its environment at all and the fix is in the host's
+        # settings rather than here. Names only — never log the values.
+        _expected = (
+            'DATABASE_URL', 'SUPABASE_S3_ENDPOINT', 'SUPABASE_S3_REGION',
+            'SUPABASE_S3_BUCKET', 'SUPABASE_S3_ACCESS_KEY', 'SUPABASE_S3_SECRET_KEY',
+        )
+        _present = [name for name in _expected if os.environ.get(name)]
+        raise RuntimeError(
+            'SECRET_KEY environment variable must be set when DEBUG is off. '
+            f'Other expected variables present: {_present or "NONE"}. '
+            + (
+                'None of them arrived, so this deployment is not receiving its '
+                'environment variables — check they are saved for this '
+                'environment and redeploy.'
+                if not _present else
+                'Others did arrive, so SECRET_KEY specifically is missing or misspelled.'
+            )
+        )
     SECRET_KEY = 'django-insecure-ve8ddzzo7r=kb45my%ivno5n9n@cy-iv8@nmhe(%f+tf_3%w6u'
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS') or ['127.0.0.1', 'localhost', 'testserver']
