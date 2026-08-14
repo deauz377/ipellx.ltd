@@ -11,7 +11,7 @@ This document provides comprehensive guidance on using the Payroll, HR (Human Re
 After pulling the latest code, run the following commands to apply database migrations:
 
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py makemigrations
 python manage.py migrate
 ```

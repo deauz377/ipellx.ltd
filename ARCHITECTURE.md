@@ -10,7 +10,7 @@ The Chama (Savings Group) module has been successfully separated from the main E
 
 ```
 Multi-Channel ERP System(RealKuku)/
-├── 14xlERP_System/              # Main ERP System (Django Project)
+├──               # Main ERP System (Django Project)
 │   ├── chama/                   # ⚠️ REMOVED - No longer part of ERP
 │   ├── customers/
 │   ├── inventory/
@@ -47,7 +47,7 @@ Multi-Channel ERP System(RealKuku)/
 ### Start Main ERP System
 
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py runserver 8000
 ```
 
@@ -73,7 +73,7 @@ python manage.py runserver 8001
    - `path('chama/', include('chama.urls'))`
 
 3. **Removed Directory**:
-   - `14xlERP_System/chama/` (archived separately)
+   - `chama/` (archived separately)
    - `chama/migrations/`
    - `chama/templates/chama/`
 
@@ -97,7 +97,7 @@ python manage.py runserver 8001
 ## Database Changes
 
 ### Main ERP Database
-- Location: `14xlERP_System/db.sqlite3`
+- Location: `db.sqlite3`
 - **Chama tables REMOVED**:
   - `chama_contribution`
   - `chama_loan`
@@ -134,7 +134,7 @@ whitenoise==6.6.0
 After removing chama from settings, run:
 
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py migrate
 ```
 
@@ -187,7 +187,7 @@ def get_chama_data():
 ## Deployment
 
 ### Deploy Main ERP
-See: `14xlERP_System/DEPLOYMENT.md`
+See: `DEPLOYMENT.md`
 
 ### Deploy Chama Service
 See: `chama_project/DEPLOYMENT.md`
@@ -203,14 +203,14 @@ Both can be deployed:
 
 ```bash
 # Check if chama is still in settings
-grep -n "chama" 14xlERP_System/realkukuERP_System/settings.py
+grep -n "chama" realkukuERP_System/settings.py
 
 # Check urls.py
-grep -n "chama" 14xlERP_System/realkukuERP_System/urls.py
+grep -n "chama" realkukuERP_System/urls.py
 
 # Remove cache and migrations
-rm -rf 14xlERP_System/__pycache__
-rm -rf 14xlERP_System/*/migrations/0*.py
+rm -rf __pycache__
+rm -rf */migrations/0*.py
 
 # Run migrations fresh
 python manage.py migrate
@@ -233,7 +233,7 @@ python manage.py createsuperuser
 
 ```bash
 # Dump chama data as JSON
-cd 14xlERP_System
+# (already at repo root)
 python manage.py dumpdata chama > chama_data.json
 ```
 
@@ -241,7 +241,7 @@ python manage.py dumpdata chama > chama_data.json
 
 ```bash
 # Copy data to chama project
-cp 14xlERP_System/chama_data.json chama_project/
+cp chama_data.json chama_project/
 
 # Load data into chama database
 cd chama_project

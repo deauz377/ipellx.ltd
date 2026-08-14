@@ -25,6 +25,7 @@ media/
 .env
 .env.*
 !.env.example
+import.env
 
 # Editors & OS
 .vscode/

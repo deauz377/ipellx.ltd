@@ -4,7 +4,7 @@
 
 ### 1. Apply Database Migrations
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py makemigrations payroll hr accounting
 python manage.py migrate
 ```

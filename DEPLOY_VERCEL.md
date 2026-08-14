@@ -44,8 +44,6 @@ Optional, for password reset to send real mail rather than log it:
 Run these from your machine, using the **5432 session** string:
 
 ```bash
-cd 14xlERP_System
-
 export DATABASE_URL="postgresql://postgres.njhfmeidygekwoedymtc:PASSWORD@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
 export SECRET_KEY="anything-for-local-admin-tasks"
 
@@ -91,7 +89,6 @@ defaults — omitting any of them fails on a not-null constraint.
 ## After every model change
 
 ```bash
-cd 14xlERP_System
 python manage.py makemigrations
 DATABASE_URL="<the 5432 string>" python manage.py migrate
 git add -A && git commit && git push    # Vercel redeploys on push

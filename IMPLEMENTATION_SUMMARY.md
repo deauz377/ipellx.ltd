@@ -8,7 +8,7 @@ Three comprehensive business modules have been successfully added to the 14XL ER
 
 ## 📊 PAYROLL MODULE
 
-**Location**: `14xlERP_System/payroll/`
+**Location**: `payroll/`
 
 ### Models (11 Classes)
 - `SalaryStructure` - Define compensation packages
@@ -50,7 +50,7 @@ Three comprehensive business modules have been successfully added to the 14XL ER
 
 ## 👥 HR MODULE
 
-**Location**: `14xlERP_System/hr/`
+**Location**: `hr/`
 
 ### Models (11 Classes)
 - `Department` - Organizational units
@@ -98,7 +98,7 @@ Three comprehensive business modules have been successfully added to the 14XL ER
 
 ## 💰 ACCOUNTING MODULE
 
-**Location**: `14xlERP_System/accounting/`
+**Location**: `accounting/`
 
 ### Models (15 Classes)
 - `ChartOfAccounts` - GL account structure (Asset, Liability, Equity, Revenue, Expense)
@@ -155,7 +155,7 @@ Three comprehensive business modules have been successfully added to the 14XL ER
 ## 📁 File Structure
 
 ```
-14xlERP_System/
+
 ├── payroll/
 │   ├── migrations/
 │   ├── templates/payroll/
@@ -217,7 +217,7 @@ Three comprehensive business modules have been successfully added to the 14XL ER
 
 ### 1. Apply Migrations
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py makemigrations
 python manage.py migrate
 ```

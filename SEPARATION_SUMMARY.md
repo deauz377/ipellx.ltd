@@ -53,7 +53,7 @@ The **Chama module has been successfully separated** from the main ERP system as
 
 ```
 Multi-Channel ERP System(RealKuku)/
-├── 14xlERP_System/                 # Main ERP (Modified)
+├──                  # Main ERP (Modified)
 │   ├── customers/
 │   ├── inventory/
 │   ├── sales/
@@ -84,7 +84,7 @@ Multi-Channel ERP System(RealKuku)/
 
 ### Terminal 1 - Main ERP System
 ```bash
-cd 14xlERP_System
+# (already at repo root)
 python manage.py runserver 8000
 ```
 **Access**: http://localhost:8000/
@@ -150,7 +150,7 @@ python manage.py runserver 8001
 ## Database Information
 
 ### Main ERP Database
-- **File**: `14xlERP_System/db.sqlite3`
+- **File**: `db.sqlite3`
 - **Chama tables**: REMOVED
 - **Remaining tables**: Customers, Inventory, Sales, Expenses, Dashboard, Core
 

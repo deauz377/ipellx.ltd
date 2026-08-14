@@ -5,6 +5,5 @@ set -o errexit
 
 pip install -r requirements.txt
 
-cd 14xlERP_System
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput

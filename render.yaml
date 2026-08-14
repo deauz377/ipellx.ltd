@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter          # a paid plan is required for the persistent disk below
     buildCommand: ./build.sh
-    startCommand: cd 14xlERP_System && gunicorn realkukuERP_System.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
+    startCommand: gunicorn realkukuERP_System.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
     healthCheckPath: /login/
     disk:
       # HR resumes and payroll receipts are written here; without a disk they
