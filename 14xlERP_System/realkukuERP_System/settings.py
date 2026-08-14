@@ -273,6 +273,9 @@ if all((SUPABASE_S3_ENDPOINT, SUPABASE_S3_ACCESS_KEY, SUPABASE_S3_SECRET_KEY, SU
             # Supabase only serves path-style URLs; the default virtual-host
             # style resolves to a hostname that does not exist.
             'addressing_style': 'path',
+            # Supabase rejects SigV2. Uploads negotiate v4 on their own, but
+            # presigned download URLs fall back to v2 and 403 without this.
+            'signature_version': 's3v4',
             # The bucket is private, so links are time-limited signed URLs.
             # Payroll receipts and resumes should not be world-readable.
             'querystring_auth': True,
