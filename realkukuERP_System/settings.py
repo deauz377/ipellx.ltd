@@ -235,6 +235,24 @@ WHATSAPP_API_TOKEN = os.environ.get('WHATSAPP_API_TOKEN', '')
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
 WHATSAPP_TEMPLATE_NAME = os.environ.get('WHATSAPP_TEMPLATE_NAME', 'purchase_order_alert')
 
+# M-Pesa Daraja API (Safaricom), for STK Push ("Lipa Na M-Pesa Online")
+# customer payments on invoices. Needs a Safaricom Daraja developer
+# account, a paybill/till shortcode, and (for production) a signed
+# contract with Safaricom -- see MPESA_SETUP.md. Without these,
+# sales.mpesa.initiate_stk_push() reports 'not_configured' instead of
+# pretending to send a payment prompt.
+MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY', '')
+MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET', '')
+MPESA_SHORTCODE = os.environ.get('MPESA_SHORTCODE', '')
+MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY', '')
+# 'sandbox' while testing against Safaricom's test environment,
+# 'production' only once the paybill/till is live.
+MPESA_ENVIRONMENT = os.environ.get('MPESA_ENVIRONMENT', 'sandbox')
+# Must be a real, publicly reachable HTTPS URL -- Safaricom's servers
+# POST the payment result here. localhost cannot receive this without a
+# tunnel (ngrok etc.); it only really works once deployed.
+MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', '')
+
 
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

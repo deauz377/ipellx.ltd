@@ -12,6 +12,9 @@ EXEMPT_PREFIXES = (
     '/admin/',
     '/static/',
     '/media/',
+    # Safaricom's servers POST the STK Push result here directly -- there is
+    # no logged-in user on the other end of that request.
+    '/sales/mpesa/callback/',
 )
 
 

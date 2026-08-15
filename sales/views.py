@@ -1,12 +1,18 @@
+import json
+import logging
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum, Count, Q, F, ExpressionWrapper, DecimalField
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils import timezone
-from .models import Invoice, InvoiceItem, Payment, Order, OrderItem, DailySalesEntry, ProfitEntry
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from .models import Invoice, InvoiceItem, Payment, Order, OrderItem, DailySalesEntry, ProfitEntry, MpesaTransaction
 from .forms import (
     InvoiceForm, InvoiceItemForm, PaymentForm, OrderForm, OrderItemForm,
     QuickSaleForm, QuickSaleItemFormSet, DailySalesEntryForm, ProfitEntryForm,
@@ -15,8 +21,11 @@ from inventory.models import Product
 from customers.models import Customer
 from .utils import compute_daily_profit
 from .whatsapp import send_supplier_order_alert
+from . import mpesa
 from django.utils.dateparse import parse_date
 from tenants.decorators import role_required
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def sales_overview(request):
@@ -268,7 +277,11 @@ def invoice_detail(request, pk):
             'subtotal': item.qty * item.price,
         })
     payments = Payment.objects.filter(invoice=invoice).order_by('date')
-    return render(request, 'sales/invoice_detail.html', {'invoice': invoice, 'items': item_rows, 'payments': payments})
+    mpesa_transactions = invoice.mpesa_transactions.all()[:5]
+    return render(request, 'sales/invoice_detail.html', {
+        'invoice': invoice, 'items': item_rows, 'payments': payments,
+        'mpesa_transactions': mpesa_transactions,
+    })
 
 
 @login_required
@@ -473,6 +486,58 @@ def payment_record(request, invoice_pk):
     else:
         form = PaymentForm()
     return render(request, 'sales/payment_form.html', {'form': form, 'invoice': invoice})
+
+
+@login_required
+@require_POST
+def mpesa_stk_push(request, invoice_pk):
+    """Sends an STK Push prompt to the customer's phone for the invoice's
+    outstanding balance (or a smaller amount, for a partial payment).
+    This only *starts* the payment -- nothing is recorded as paid until
+    Safaricom's callback confirms it via mpesa_callback() below, which is
+    why there's no success message here claiming the payment went through."""
+    invoice = get_object_or_404(Invoice, pk=invoice_pk)
+    phone_number = request.POST.get('phone_number', '').strip()
+    amount_str = request.POST.get('amount', '').strip()
+
+    try:
+        amount = Decimal(amount_str) if amount_str else invoice.balance
+    except InvalidOperation:
+        messages.error(request, 'Enter a valid amount.')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    if amount <= 0:
+        messages.error(request, 'Amount must be greater than zero.')
+    elif amount > invoice.balance:
+        messages.error(request, f'Amount can\'t exceed the balance due (KES {invoice.balance:.2f}).')
+    else:
+        success, note, _txn = mpesa.initiate_stk_push(invoice, phone_number, amount, user=request.user)
+        if success:
+            messages.success(request, note)
+        else:
+            messages.warning(request, note)
+
+    return redirect('sales:invoice_detail', pk=invoice.pk)
+
+
+@csrf_exempt
+@require_POST
+def mpesa_callback(request):
+    """Safaricom POSTs the STK Push result here -- never from a browser,
+    so no login/CSRF applies. Always returns HTTP 200 with the specific
+    body Daraja expects; Safaricom retries on anything else, and retrying
+    doesn't help if our own processing is what's failing."""
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        logger.warning('M-Pesa callback: unparseable body')
+        return HttpResponseBadRequest('invalid JSON')
+
+    found = mpesa.handle_callback(payload)
+    if not found:
+        logger.warning('M-Pesa callback: no matching transaction for payload: %s', payload)
+
+    return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Accepted'})
 
 
 

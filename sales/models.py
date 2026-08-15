@@ -183,3 +183,39 @@ class Payment(TenantModel):
     def __str__(self):
         return f"{self.method} payment of {self.amount}"
 
+
+class MpesaTransaction(TenantModel):
+    """One STK Push attempt against an invoice. Deliberately separate from
+    Payment: STK Push is asynchronous (Safaricom confirms or rejects it
+    seconds to minutes later, via a webhook, and the customer can also
+    just cancel the prompt on their phone) so nothing here should count
+    as money received -- and invoice.paid should never move -- until the
+    callback actually confirms success. A Payment row only gets created
+    at that point, by mpesa_callback()."""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+    ]
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='mpesa_transactions')
+    phone_number = models.CharField(max_length=15)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    # Safaricom's IDs for correlating the later callback to this attempt.
+    checkout_request_id = models.CharField(max_length=100, unique=True)
+    merchant_request_id = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    mpesa_receipt_number = models.CharField(max_length=50, blank=True)
+    result_description = models.CharField(max_length=255, blank=True)
+    initiated_by = models.ForeignKey(
+        'tenants.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='mpesa_transactions_initiated',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"M-Pesa {self.checkout_request_id} - {self.status}"
+
