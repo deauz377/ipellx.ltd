@@ -21,6 +21,7 @@ urlpatterns = [
     path('orders/add/', views.order_create, name='order_create'),
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
     path('orders/<int:order_pk>/item/add/', views.order_item_add, name='order_item_add'),
+    path('orders/<int:pk>/notify-supplier/', views.order_notify_supplier, name='order_notify_supplier'),
     path('profit/', views.daily_profit_dashboard, name='daily_profit_dashboard'),
     path('profit/by-category/', views.product_profit_report, name='product_profit_report'),
     path('profit-entries/', views.profit_entry_list, name='profit_entry_list'),

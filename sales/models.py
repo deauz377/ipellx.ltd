@@ -46,6 +46,13 @@ class Order(TenantModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
+    # Set when a WhatsApp alert is sent to the supplier for this order.
+    # 'not_configured' / 'no_phone' / 'failed' / 'sent' -- surfaced on the
+    # order detail page so an Owner isn't left guessing whether the
+    # supplier actually got notified.
+    supplier_notified_at = models.DateTimeField(null=True, blank=True)
+    supplier_notification_status = models.CharField(max_length=20, blank=True)
+
     def __str__(self):
         if self.order_type == 'supplier' and self.supplier:
             return f"Purchase Order #{self.id} - {self.supplier.name}"

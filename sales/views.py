@@ -14,6 +14,7 @@ from .forms import (
 from inventory.models import Product
 from customers.models import Customer
 from .utils import compute_daily_profit
+from .whatsapp import send_supplier_order_alert
 from django.utils.dateparse import parse_date
 from tenants.decorators import role_required
 
@@ -422,6 +423,22 @@ def order_item_add(request, order_pk):
     else:
         form = OrderItemForm()
     return render(request, 'sales/order_item_form.html', {'form': form, 'order': order})
+
+
+@login_required
+def order_notify_supplier(request, pk):
+    """Sends (or re-sends) a WhatsApp purchase-order alert to this order's
+    supplier. POST-only since it has a real side effect (and, once
+    WhatsApp is configured, a real cost per message)."""
+    order = get_object_or_404(Order, pk=pk, order_type='supplier')
+    if request.method == 'POST':
+        success, note = send_supplier_order_alert(order)
+        order.save(update_fields=['supplier_notified_at', 'supplier_notification_status'])
+        if success:
+            messages.success(request, note)
+        else:
+            messages.warning(request, note)
+    return redirect('sales:order_detail', pk=order.pk)
 
 
 @login_required

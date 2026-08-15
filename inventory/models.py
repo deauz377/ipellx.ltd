@@ -6,6 +6,13 @@ from tenants.models import TenantModel
 class Supplier(TenantModel):
     name = models.CharField(max_length=200)  # Placeholder for encryption
     contact = models.CharField(max_length=100, blank=True)
+    # Separate from `contact` (which is free text -- could be a person's
+    # name, an email, anything) because WhatsApp alerts need a real,
+    # validated phone number in international format.
+    phone = models.CharField(
+        max_length=20, blank=True,
+        help_text='WhatsApp number in international format, e.g. 254712345678',
+    )
 
     def __str__(self):
         return self.name

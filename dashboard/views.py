@@ -99,7 +99,10 @@ def overview(request):
     # Chart data: Top products
     top_products_list = Product.objects.order_by('-quantity')[:5].values('name', 'quantity', 'retail_price')
     product_labels = [p['name'][:15] for p in top_products_list]
-    product_data = [p['quantity'] for p in top_products_list]
+    # Product.quantity is a Decimal (fractional stock support) -- json.dumps
+    # can't serialize Decimal directly, same reason expense_data above is
+    # wrapped in float().
+    product_data = [float(p['quantity']) for p in top_products_list]
 
     debtors = Customer.objects.filter(balance__gt=0).order_by('-balance')[:5]
 

@@ -14,10 +14,36 @@
             {% endif %}
         </p>
     </div>
-    <div>
+    <div class="d-flex gap-2">
         <a href="{% url 'sales:order_item_add' order.pk %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Order Item</a>
+        {% if order.order_type == 'supplier' and items %}
+            <form method="post" action="{% url 'sales:order_notify_supplier' order.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-success">
+                    <i class="bi bi-whatsapp"></i>
+                    {% if order.supplier_notification_status == 'sent' %}Re-send Supplier Alert{% else %}Notify Supplier{% endif %}
+                </button>
+            </form>
+        {% endif %}
     </div>
 </div>
+
+{% if order.order_type == 'supplier' and order.supplier_notification_status %}
+    <div class="alert
+        {% if order.supplier_notification_status == 'sent' %}alert-success
+        {% elif order.supplier_notification_status == 'not_configured' %}alert-secondary
+        {% else %}alert-warning{% endif %} py-2 mb-3">
+        {% if order.supplier_notification_status == 'sent' %}
+            <i class="bi bi-whatsapp"></i> Supplier alerted via WhatsApp on {{ order.supplier_notified_at|date:"d M Y, H:i" }}.
+        {% elif order.supplier_notification_status == 'not_configured' %}
+            <i class="bi bi-info-circle"></i> WhatsApp alerts aren't configured for this business yet.
+        {% elif order.supplier_notification_status == 'no_phone' %}
+            <i class="bi bi-exclamation-triangle"></i> This supplier has no WhatsApp number on file.
+        {% else %}
+            <i class="bi bi-exclamation-triangle"></i> The last alert attempt failed. Try again, or check the supplier's number.
+        {% endif %}
+    </div>
+{% endif %}
 
 <div class="row mb-4">
     <div class="col-md-3">

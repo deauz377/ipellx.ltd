@@ -605,6 +605,11 @@
                     <i class="bi bi-box2"></i> Inventory
                 </a>
             </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'customers' %}active{% endif %}" href="{% url 'customers:crm_dashboard' %}">
+                    <i class="bi bi-person-heart"></i> Customers
+                </a>
+            </li>
             {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
             <li>
                 <a class="{% if request.resolver_match.app_name == 'accounting' %}active{% endif %}" href="{% url 'accounting:dashboard' %}">

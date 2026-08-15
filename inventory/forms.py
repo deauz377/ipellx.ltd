@@ -20,8 +20,9 @@ class ProductForm(forms.ModelForm):
 class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier
-        fields = ['name', 'contact']
+        fields = ['name', 'contact', 'phone']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Supplier name'}),
-            'contact': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact info'}),
+            'contact': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact person / email'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 254712345678'}),
         }

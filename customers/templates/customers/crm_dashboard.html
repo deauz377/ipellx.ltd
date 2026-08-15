@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}CRM - IPELLX{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-person-heart"></i> Customer Relationships</h1>
+        <p class="text-muted mb-0">Who's buying, who's overdue, and who hasn't been back in a while.</p>
+    </div>
+    <a href="{% url 'customers:customer_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Customer</a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="number">{{ total_customers }}</div>
+            <div class="label">Total Customers</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="number">KES {{ total_outstanding|floatformat:0 }}</div>
+            <div class="label">Outstanding Balance</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="number">{{ over_limit_count }}</div>
+            <div class="label">Over Credit Limit</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="number">{{ with_notes_count }}</div>
+            <div class="label">With Notes</div>
+        </div>
+    </div>
+</div>
+
+{% if customers %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Lifetime Sales</th>
+                    <th>Orders</th>
+                    <th>Last Purchase</th>
+                    <th>Credit Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                    <tr>
+                        <td>
+                            {{ customer.name }}
+                            {% if customer.notes %}<i class="bi bi-journal-text text-muted ms-1" title="Has notes"></i>{% endif %}
+                        </td>
+                        <td>{{ customer.phone|default:"—" }}</td>
+                        <td>KES {{ customer.lifetime_sales|default:0|floatformat:2 }}</td>
+                        <td>{{ customer.order_count }}</td>
+                        <td>
+                            {% if customer.last_purchase %}
+                                {{ customer.last_purchase|date:"d M Y" }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if customer.credit_limit and customer.balance > customer.credit_limit %}
+                                <span class="badge bg-danger">Over limit</span>
+                            {% elif customer.balance > 0 %}
+                                <span class="badge bg-warning">KES {{ customer.balance|floatformat:2 }} owed</span>
+                            {% else %}
+                                <span class="badge bg-success">Clear</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> No customers yet. <a href="{% url 'customers:customer_create' %}">Add one now!</a></div>
+{% endif %}
+{% endblock %}

@@ -5,6 +5,7 @@ app_name = 'customers'
 
 urlpatterns = [
     path('', views.customer_list, name='customer_list'),
+    path('crm/', views.crm_dashboard, name='crm_dashboard'),
     path('add/', views.customer_create, name='customer_create'),
     path('<int:pk>/', views.customer_detail, name='customer_detail'),
     path('<int:pk>/edit/', views.customer_edit, name='customer_edit'),

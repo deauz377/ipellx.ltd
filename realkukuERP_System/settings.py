@@ -223,6 +223,18 @@ else:
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@14xlevel-erp.local')
 
+# WhatsApp Business Cloud API (Meta), used to alert suppliers when a
+# purchase order is sent to them. Needs real setup only the business
+# owner can do: a Meta Business Account, a verified WhatsApp Business
+# phone number, and an approved message template (business-initiated
+# WhatsApp messages must use a pre-approved template -- free-form text
+# only works within 24 hours of the recipient messaging first). Without
+# these three values, sales.whatsapp.send_supplier_order_alert() no-ops
+# with a clear 'not_configured' status rather than pretending to send.
+WHATSAPP_API_TOKEN = os.environ.get('WHATSAPP_API_TOKEN', '')
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
+WHATSAPP_TEMPLATE_NAME = os.environ.get('WHATSAPP_TEMPLATE_NAME', 'purchase_order_alert')
+
 
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

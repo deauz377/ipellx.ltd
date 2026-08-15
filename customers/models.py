@@ -8,6 +8,10 @@ class Customer(TenantModel):
     phone = models.CharField(max_length=20, blank=True)
     credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    notes = models.TextField(
+        blank=True,
+        help_text='Free-form relationship notes -- preferences, history, anything worth remembering.',
+    )
 
     def __str__(self):
         return self.name
