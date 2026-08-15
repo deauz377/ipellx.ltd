@@ -55,16 +55,18 @@
             <table class="table mb-0" id="quick-sale-table">
                 <thead>
                     <tr>
-                        <th style="width: 45%">Product</th>
-                        <th style="width: 15%">Qty</th>
-                        <th style="width: 20%">Price (each)</th>
-                        <th style="width: 20%">Line total</th>
+                        <th style="width: 30%">Product</th>
+                        <th style="width: 15%">Sold as</th>
+                        <th style="width: 13%">Qty</th>
+                        <th style="width: 17%">Price (each)</th>
+                        <th style="width: 25%">Line total</th>
                     </tr>
                 </thead>
                 <tbody id="quick-sale-rows">
                     {% for line_form in formset %}
                     <tr class="quick-sale-row">
                         <td>{{ line_form.product }}</td>
+                        <td>{{ line_form.channel }}</td>
                         <td>{{ line_form.qty }}<div class="form-text quick-sale-stock"></div></td>
                         <td>{{ line_form.price }}</td>
                         <td class="quick-sale-line-total align-middle">0.00</td>
@@ -73,7 +75,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="3" class="text-end fw-bold">Total</td>
+                        <td colspan="4" class="text-end fw-bold">Total</td>
                         <td class="fw-bold" id="quick-sale-grand-total">0.00</td>
                     </tr>
                 </tfoot>
@@ -105,13 +107,15 @@
 
     function recalcRow(row) {
         const productSelect = row.querySelector('.quick-sale-product');
+        const channelSelect = row.querySelector('.quick-sale-channel');
         const qtyInput = row.querySelector('.quick-sale-qty');
         const priceInput = row.querySelector('.quick-sale-price');
         const stockHint = row.querySelector('.quick-sale-stock');
         const lineTotalCell = row.querySelector('.quick-sale-line-total');
 
         const selectedOption = productSelect.options[productSelect.selectedIndex];
-        const price = selectedOption ? selectedOption.getAttribute('data-price') : null;
+        const channel = channelSelect ? channelSelect.value : 'retail';
+        const price = selectedOption ? selectedOption.getAttribute('data-' + channel + '-price') : null;
         const stock = selectedOption ? selectedOption.getAttribute('data-stock') : null;
 
         if (price && !priceInput.dataset.userEdited) {
@@ -141,6 +145,7 @@
 
     function wireRow(row) {
         const productSelect = row.querySelector('.quick-sale-product');
+        const channelSelect = row.querySelector('.quick-sale-channel');
         const qtyInput = row.querySelector('.quick-sale-qty');
         const priceInput = row.querySelector('.quick-sale-price');
 
@@ -148,6 +153,12 @@
             priceInput.dataset.userEdited = '';
             recalcAll();
         });
+        if (channelSelect) {
+            channelSelect.addEventListener('change', function() {
+                priceInput.dataset.userEdited = '';
+                recalcAll();
+            });
+        }
         qtyInput.addEventListener('input', recalcAll);
         priceInput.addEventListener('input', function() {
             priceInput.dataset.userEdited = '1';

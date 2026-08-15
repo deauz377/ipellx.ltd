@@ -84,11 +84,18 @@ class TenantModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        if hasattr(self, 'tenant') and not self.tenant:
-            # Set tenant from request if not set
-            from django.utils.deprecation import MiddlewareMixin
-            # But better to set in views
-            pass
+        # Views that create a TenantModel without passing tenant= explicitly
+        # (e.g. Invoice.objects.create(customer=..., total=...) with no
+        # tenant kwarg) would otherwise silently save with tenant=None --
+        # invisible until someone notices a printed invoice heading says
+        # "Business" instead of the real business name. Only fills in when
+        # unset, so any caller that already passes tenant= explicitly is
+        # unaffected.
+        if not self.tenant_id:
+            from .middleware import get_current_tenant
+            tenant = get_current_tenant()
+            if tenant:
+                self.tenant = tenant
         super().save(*args, **kwargs)
 
 

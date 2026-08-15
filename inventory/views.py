@@ -153,7 +153,6 @@ def product_import_csv(request):
                     quantity=row['Quantity'],
                     minimum_stock=row['Min Stock'],
                     supplier=supplier,
-                    business=request.user.business if hasattr(request.user, 'business') else None
                 )
                 imported_count += 1
             except Exception as e:

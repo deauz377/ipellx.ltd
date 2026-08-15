@@ -6,9 +6,10 @@ from customers.models import Customer
 
 
 class ProductSelect(forms.Select):
-    """Select widget that stamps each <option> with data-price/data-stock
+    """Select widget that stamps each <option> with data-*-price/data-stock
     so the quick sale page can auto-fill price and show stock without
-    a round trip to the server."""
+    a round trip to the server. Carries all three price tiers -- which one
+    actually gets used is decided client-side by the row's channel dropdown."""
     def __init__(self, *args, product_data=None, **kwargs):
         self.product_data = product_data or {}
         super().__init__(*args, **kwargs)
@@ -17,7 +18,9 @@ class ProductSelect(forms.Select):
         option = super().create_option(name, value, label, selected, index, subindex, attrs)
         data = self.product_data.get(str(value))
         if data:
-            option['attrs']['data-price'] = str(data['price'])
+            option['attrs']['data-retail-price'] = str(data['retail_price'])
+            option['attrs']['data-wholesale-price'] = str(data['wholesale_price'])
+            option['attrs']['data-online-price'] = str(data['online_price'])
             option['attrs']['data-stock'] = str(data['stock'])
         return option
 
@@ -33,11 +36,12 @@ class InvoiceForm(forms.ModelForm):
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceItem
-        fields = ['product', 'qty', 'price']
+        fields = ['product', 'qty', 'price', 'sale_channel']
         widgets = {
             'product': forms.Select(attrs={'class': 'form-select'}),
-            'qty': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'qty': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'sale_channel': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class OrderForm(forms.ModelForm):
@@ -69,7 +73,7 @@ class OrderItemForm(forms.ModelForm):
         fields = ['product', 'qty', 'price']
         widgets = {
             'product': forms.Select(attrs={'class': 'form-select'}),
-            'qty': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'qty': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
 
@@ -118,9 +122,13 @@ class QuickSaleItemForm(forms.Form):
         queryset=Product.objects.none(), required=False,
         widget=ProductSelect(attrs={'class': 'form-select quick-sale-product'}),
     )
-    qty = forms.IntegerField(
-        required=False, min_value=1,
-        widget=forms.NumberInput(attrs={'class': 'form-control quick-sale-qty', 'min': '1'}),
+    channel = forms.ChoiceField(
+        choices=InvoiceItem.CHANNEL_CHOICES, required=False, initial='retail',
+        widget=forms.Select(attrs={'class': 'form-select quick-sale-channel'}),
+    )
+    qty = forms.DecimalField(
+        required=False, min_value=0.01, max_digits=10, decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control quick-sale-qty', 'step': '0.01', 'min': '0.01'}),
     )
     price = forms.DecimalField(
         required=False, min_value=0, max_digits=10, decimal_places=2,
@@ -132,7 +140,13 @@ class QuickSaleItemForm(forms.Form):
         products = Product.objects.all().order_by('name')
         self.fields['product'].queryset = products
         self.fields['product'].widget.product_data = {
-            str(p.pk): {'price': p.retail_price, 'stock': p.quantity} for p in products
+            str(p.pk): {
+                'retail_price': p.retail_price,
+                'wholesale_price': p.wholesale_price,
+                'online_price': p.online_price,
+                'stock': p.quantity,
+            }
+            for p in products
         }
 
 

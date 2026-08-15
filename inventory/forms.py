@@ -12,8 +12,8 @@ class ProductForm(forms.ModelForm):
             'retail_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'wholesale_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'online_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control'}),
-            'minimum_stock': forms.NumberInput(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 2.5 for fractional stock (kg, litres, etc.)'}),
+            'minimum_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'supplier': forms.Select(attrs={'class': 'form-select'}),
         }
 

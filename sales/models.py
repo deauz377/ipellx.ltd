@@ -56,10 +56,24 @@ class Order(TenantModel):
         return self.supplier.name if self.order_type == 'supplier' and self.supplier else self.customer.name if self.customer else 'Unknown'
 
 class InvoiceItem(TenantModel):
+    CHANNEL_CHOICES = [
+        ('retail', 'Retail'),
+        ('wholesale', 'Wholesale'),
+        ('online', 'Online'),
+    ]
+
     invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    qty = models.IntegerField()
+    # Decimal, not integer -- matches Product.quantity, so goods sold by
+    # weight/volume can be sold in fractional amounts too.
+    qty = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Which of the product's three price tiers this line was actually sold
+    # at. Independent of `price` itself, which can still be hand-overridden
+    # per line -- this is what makes a later "sales by channel" report
+    # possible, since price alone can't distinguish a discounted retail
+    # sale from a wholesale one.
+    sale_channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default='retail')
     # Snapshot of the product's cost price at the moment this item was
     # sold, so historical profit stays accurate even if the product's
     # current cost_price changes later.
@@ -71,7 +85,8 @@ class InvoiceItem(TenantModel):
 class OrderItem(TenantModel):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    qty = models.IntegerField()
+    # Decimal, matching Product.quantity -- see InvoiceItem.qty.
+    qty = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):

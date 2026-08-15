@@ -22,8 +22,10 @@ class Product(TenantModel):
     wholesale_price = models.DecimalField(max_digits=10, decimal_places=2)
     online_price = models.DecimalField(max_digits=10, decimal_places=2)
     
-    quantity = models.IntegerField(default=0)
-    minimum_stock = models.IntegerField(default=5)
+    # Decimal, not integer -- goods sold by weight/volume (e.g. 2.5 kg of
+    # rice, 1.5 litres of cooking oil) need fractional stock levels.
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    minimum_stock = models.DecimalField(max_digits=10, decimal_places=2, default=5)
     
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL,
                                  blank=True, null=True)

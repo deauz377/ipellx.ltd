@@ -57,19 +57,25 @@ def quick_sale(request):
         if form.is_valid() and formset.is_valid():
             lines = []
             stock_errors = []
+            channel_prices = {
+                'retail': lambda p: p.retail_price,
+                'wholesale': lambda p: p.wholesale_price,
+                'online': lambda p: p.online_price,
+            }
             for line_form in formset:
                 product = line_form.cleaned_data.get('product')
                 qty = line_form.cleaned_data.get('qty')
                 if not product or not qty:
                     continue
+                channel = line_form.cleaned_data.get('channel') or 'retail'
                 price = line_form.cleaned_data.get('price')
                 if price is None:
-                    price = product.retail_price
+                    price = channel_prices.get(channel, channel_prices['retail'])(product)
                 if qty > product.quantity:
                     stock_errors.append(
                         f"Only {product.quantity} of \"{product.name}\" in stock (you entered {qty})."
                     )
-                lines.append({'product': product, 'qty': qty, 'price': price})
+                lines.append({'product': product, 'qty': qty, 'price': price, 'channel': channel})
 
             if not lines:
                 form.add_error(None, 'Add at least one product with a quantity.')
@@ -94,7 +100,7 @@ def quick_sale(request):
                     for l in lines:
                         InvoiceItem.objects.create(
                             invoice=invoice, product=l['product'], qty=l['qty'], price=l['price'],
-                            cost_price=l['product'].cost_price,
+                            cost_price=l['product'].cost_price, sale_channel=l['channel'],
                         )
                         product = l['product']
                         product.quantity = F('quantity') - l['qty']
