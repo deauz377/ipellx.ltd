@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.contrib import messages
+from django.shortcuts import redirect, render
 from django.db.models import Sum, F, Count, Q, DecimalField
 from django.utils import timezone
 from datetime import timedelta, datetime
@@ -9,6 +10,7 @@ from sales.models import Order
 from inventory.models import Product
 from expenses.models import Expense
 from customers.models import Customer
+from core.forms import TeamMemberCreationForm
 from tenants.decorators import role_required
 from tenants.models import User, SubscriptionPlan
 
@@ -233,3 +235,31 @@ def team_activity(request):
         'week_start': week_start,
     }
     return render(request, 'dashboard/team_activity.html', context)
+
+
+@role_required('OWNER')
+def add_team_member(request):
+    """Owner-only: creates a Manager or Staff login under the Owner's own
+    tenant. Not exposed to Managers -- letting a Manager create another
+    Manager account would be a privilege-escalation path, and this matches
+    team_activity's existing Owner-only access to the same "Team" area."""
+    if request.method == 'POST':
+        form = TeamMemberCreationForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            user = User.objects.create_user(
+                username=data['username'],
+                email=data['email'],
+                password=data['password1'],
+                tenant=request.user.tenant,
+                role=data['role'],
+            )
+            messages.success(
+                request,
+                f"{user.username} can now sign in as {user.get_role_display()}. "
+                f"Share their username and password with them directly.",
+            )
+            return redirect('team_activity')
+    else:
+        form = TeamMemberCreationForm()
+    return render(request, 'dashboard/team_add_member.html', {'form': form})

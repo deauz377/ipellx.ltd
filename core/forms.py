@@ -46,6 +46,45 @@ class RoleAwareLoginForm(AuthenticationForm):
         return cleaned_data
 
 
+class TeamMemberCreationForm(forms.Form):
+    """Owner-only: creates a Manager or Staff login within the Owner's own
+    tenant. Deliberately excludes Role.OWNER from the choices -- User.save()
+    grants Django admin superuser access whenever role is set to OWNER, so
+    that option must never be selectable here."""
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    role = forms.ChoiceField(
+        choices=[
+            (User.Role.MANAGER, User.Role.MANAGER.label),
+            (User.Role.STAFF, User.Role.STAFF.label),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    password1 = forms.CharField(label='Password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('That username is already taken. Usernames must be unique across the whole platform.')
+        return username
+
+    def clean_role(self):
+        role = self.cleaned_data['role']
+        if role not in (User.Role.MANAGER, User.Role.STAFF):
+            raise forms.ValidationError('Invalid role.')
+        return role
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1, p2 = cleaned_data.get('password1'), cleaned_data.get('password2')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError("Passwords don't match.")
+        if p1 and len(p1) < 8:
+            raise forms.ValidationError("Password must be at least 8 characters.")
+        return cleaned_data
+
+
 class SignupForm(forms.Form):
     """Public signup: creates a new business (Tenant) plus its first
     account, which is always the Owner."""
