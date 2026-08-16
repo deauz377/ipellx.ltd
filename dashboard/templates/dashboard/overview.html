@@ -762,6 +762,70 @@
         </div>
     </div>
 
+    <!-- Payments Section -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="bi bi-cash-coin"></i> Recent Payments</h3>
+            <a href="{% url 'sales:invoice_list' %}" style="color: var(--primary); font-size: 0.9rem;">View Invoices →</a>
+        </div>
+        <div class="table-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Customer</th>
+                        <th>Method</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in recent_payments %}
+                    <tr>
+                        <td><a href="{% url 'sales:invoice_detail' payment.invoice.pk %}">#{{ payment.invoice.pk }}</a></td>
+                        <td>{{ payment.invoice.customer.name }}</td>
+                        <td>
+                            {% if payment.method == 'mpesa' %}
+                                <span class="status-badge status-paid"><i class="bi bi-phone"></i> M-Pesa</span>
+                            {% else %}
+                                <span class="status-badge">{{ payment.get_method_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>KES {{ payment.amount|floatformat:0 }}</td>
+                        <td>{{ payment.date|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            <i class="bi bi-cash"></i> No payments recorded yet
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pending_mpesa %}
+        <div class="table-body" style="border-top: 1px solid var(--border); padding-top: 4px;">
+            <div style="padding: 8px 20px 4px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                Awaiting M-Pesa confirmation
+            </div>
+            <table class="table">
+                <tbody>
+                    {% for txn in pending_mpesa %}
+                    <tr>
+                        <td><a href="{% url 'sales:invoice_detail' txn.invoice.pk %}">#{{ txn.invoice.pk }}</a></td>
+                        <td>{{ txn.invoice.customer.name }}</td>
+                        <td><span class="status-badge status-pending"><i class="bi bi-hourglass-split"></i> Pending</span></td>
+                        <td>KES {{ txn.amount|floatformat:0 }}</td>
+                        <td>{{ txn.created_at|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Debtors Section -->
     <div class="table-card">
         <div class="table-header">

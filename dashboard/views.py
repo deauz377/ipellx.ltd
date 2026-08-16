@@ -7,6 +7,7 @@ import json
 
 from sales.models import Invoice, InvoiceItem, DailySalesEntry
 from sales.models import Order
+from sales.models import Payment, MpesaTransaction
 from inventory.models import Product
 from expenses.models import Expense
 from customers.models import Customer
@@ -107,6 +108,13 @@ def overview(request):
 
     debtors = Customer.objects.filter(balance__gt=0).order_by('-balance')[:5]
 
+    # Payments received (cash/mpesa/bank), plus any M-Pesa STK Push attempts
+    # still awaiting Safaricom's callback -- shown separately from
+    # recent_payments since a pending attempt isn't money received yet,
+    # and shouldn't be presented as if it were.
+    recent_payments = Payment.objects.select_related('invoice', 'invoice__customer').order_by('-date')[:8]
+    pending_mpesa = MpesaTransaction.objects.filter(status='pending').select_related('invoice__customer').order_by('-created_at')[:5]
+
     # Alerts for the notification bell (low stock) and envelope (unpaid invoices)
     low_stock_products = Product.objects.filter(
         quantity__lte=F('minimum_stock')
@@ -135,6 +143,8 @@ def overview(request):
         'recent_expenses': recent_expenses,
         'top_products': top_products,
         'debtors': debtors,
+        'recent_payments': recent_payments,
+        'pending_mpesa': pending_mpesa,
         'low_stock_products': low_stock_products,
         'unpaid_invoices': unpaid_invoices,
         'unpaid_invoices_count': unpaid_invoices_count,
