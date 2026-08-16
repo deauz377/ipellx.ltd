@@ -11,6 +11,7 @@ from inventory.models import Product
 from expenses.models import Expense
 from customers.models import Customer
 from core.forms import TeamMemberCreationForm
+from hr.models import Employee
 from tenants.decorators import role_required
 from tenants.models import User, SubscriptionPlan
 
@@ -256,6 +257,15 @@ def add_team_member(request):
                 password=data['password1'],
                 tenant=request.user.tenant,
                 role=data['role'],
+            )
+            # Without this, the account can sign in but the Staff/Manager
+            # Portal (hr:staff_portal) immediately bounces them back to the
+            # dashboard with "no employee profile set up" -- every field
+            # here except employee_id has a default or is optional, so this
+            # is enough to make the portal usable right away; department,
+            # position, and the rest can be filled in later from HR.
+            Employee.objects.create(
+                user=user, tenant=request.user.tenant, employee_id=f'EMP-{user.pk:04d}',
             )
             messages.success(
                 request,
