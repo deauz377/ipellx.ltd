@@ -44,3 +44,25 @@ class LoginRequiredMiddleware(MiddlewareMixin):
             return None
 
         return redirect_to_login(request.get_full_path(), login_url=settings.LOGIN_URL)
+
+
+class NoCacheMiddleware(MiddlewareMixin):
+    """
+    Marks every response as private and not cacheable, except the static
+    assets WhiteNoise serves. Without this, Django (and this project sets
+    no Cache-Control anywhere else) leaves responses free for any shared
+    cache or proxy sitting in front of the app -- browser, corporate
+    network, mobile carrier, CDN -- to store and hand back to a different
+    visitor. Every other page here renders per-user/per-tenant data, so
+    "cacheable" and "shareable" are never correct for it: a page built for
+    one logged-in session must never be reusable for the next request that
+    happens to hit the same URL without going through login first.
+    """
+
+    def process_response(self, request, response):
+        if request.path.startswith('/static/') or request.path.startswith('/media/'):
+            return response
+
+        response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        return response

@@ -137,6 +137,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.LoginRequiredMiddleware',
+    'core.middleware.NoCacheMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'tenants.middleware.TenantMiddleware',  # Custom tenant middleware
