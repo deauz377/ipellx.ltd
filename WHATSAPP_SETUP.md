@@ -49,6 +49,24 @@ If you want different wording, edit the `parameters` list in
 and count must line up exactly with your approved template's `{{1}}`,
 `{{2}}`, etc.
 
+### A second template for payment requests
+
+The payment management module (`sales/views.py`'s "Request Payment" /
+"Send Reminder" buttons, backed by `send_payment_request_whatsapp()` in
+`sales/whatsapp.py`) sends a **different** message shape, so it needs its
+own separately-approved template — WhatsApp does not let one approved
+template stand in for a different body layout. Create a second template
+taking **4 text parameters in this order**:
+
+```
+Hello {{1}}, {{2}} has sent you a payment request. Invoice #{{3}}:
+KES {{4}} outstanding. Please complete your payment using the link sent
+separately, or contact us for details.
+```
+
+Set its name via `WHATSAPP_PAYMENT_TEMPLATE_NAME` below (defaults to
+`payment_request_alert`).
+
 ## 3. Environment variables
 
 Once you have a phone number and an approved template, set these wherever
@@ -59,6 +77,7 @@ the app is deployed (same place as `SECRET_KEY` and `DATABASE_URL`):
 | `WHATSAPP_API_TOKEN` | Meta App Dashboard → WhatsApp → API Setup → a temporary token to start, a permanent one once you set up a System User for production |
 | `WHATSAPP_PHONE_NUMBER_ID` | Meta App Dashboard → WhatsApp → API Setup — a numeric ID, **not** the phone number itself |
 | `WHATSAPP_TEMPLATE_NAME` | The template name you created in step 2. Defaults to `purchase_order_alert` if unset |
+| `WHATSAPP_PAYMENT_TEMPLATE_NAME` | The payment-request template name from the section above. Defaults to `payment_request_alert` if unset |
 
 ## Testing before suppliers see anything
 

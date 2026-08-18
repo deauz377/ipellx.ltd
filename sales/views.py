@@ -1,6 +1,9 @@
 import json
 import logging
 
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,19 +11,24 @@ from django.db import transaction
 from django.db.models import Sum, Count, Q, F, ExpressionWrapper, DecimalField
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from .models import Invoice, InvoiceItem, Payment, Order, OrderItem, DailySalesEntry, ProfitEntry, MpesaTransaction
+from .models import (
+    Invoice, InvoiceItem, Payment, PaymentRequest, PaymentAuditLog, Order, OrderItem,
+    DailySalesEntry, ProfitEntry, MpesaTransaction,
+)
 from .forms import (
-    InvoiceForm, InvoiceItemForm, PaymentForm, OrderForm, OrderItemForm,
-    QuickSaleForm, QuickSaleItemFormSet, DailySalesEntryForm, ProfitEntryForm,
+    InvoiceForm, InvoiceItemForm, PaymentForm, PaymentRequestForm, PaymentRefundForm,
+    OrderForm, OrderItemForm, QuickSaleForm, QuickSaleItemFormSet, DailySalesEntryForm, ProfitEntryForm,
 )
 from inventory.models import Product
 from customers.models import Customer
-from .utils import compute_daily_profit
-from .whatsapp import send_supplier_order_alert
+from .utils import compute_daily_profit, send_payment_request_reminder
+from .whatsapp import send_supplier_order_alert, send_payment_request_whatsapp
+from .sms import send_sms
 from . import mpesa
 from django.utils.dateparse import parse_date
 from tenants.decorators import role_required
@@ -122,10 +130,16 @@ def quick_sale(request):
                     invoice.save(update_fields=['paid'])
 
                     if paid_amount > 0:
-                        Payment.objects.create(
+                        payment = Payment.objects.create(
                             invoice=invoice,
                             method=form.cleaned_data['payment_method'],
                             amount=paid_amount,
+                            recorded_by=request.user,
+                        )
+                        customer.recalculate_balance()
+                        PaymentAuditLog.objects.create(
+                            invoice=invoice, payment=payment, action='payment_recorded',
+                            actor=request.user, metadata={'amount': str(paid_amount), 'source': 'quick_sale'},
                         )
 
                 messages.success(request, f'Sale recorded — Invoice #{invoice.pk}.')
@@ -278,9 +292,10 @@ def invoice_detail(request, pk):
         })
     payments = Payment.objects.filter(invoice=invoice).order_by('date')
     mpesa_transactions = invoice.mpesa_transactions.all()[:5]
+    payment_requests = invoice.payment_requests.exclude(status='cancelled').order_by('-created_at')
     return render(request, 'sales/invoice_detail.html', {
         'invoice': invoice, 'items': item_rows, 'payments': payments,
-        'mpesa_transactions': mpesa_transactions,
+        'mpesa_transactions': mpesa_transactions, 'payment_requests': payment_requests,
     })
 
 
@@ -335,6 +350,7 @@ def payment_receipt(request, pk):
 def invoice_delete(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     if request.method == 'POST':
+        customer = invoice.customer
         with transaction.atomic():
             # Restore the stock this invoice took out, since deleting the
             # sale record shouldn't leave inventory permanently short.
@@ -343,6 +359,9 @@ def invoice_delete(request, pk):
                 product.quantity = F('quantity') + item.qty
                 product.save(update_fields=['quantity'])
             invoice.delete()
+        # After delete, not before -- otherwise this invoice's own
+        # outstanding balance would still be counted in the recompute.
+        customer.recalculate_balance()
         messages.success(request, 'Invoice deleted and stock restored.')
         return redirect('sales:invoice_list')
     return render(request, 'sales/invoice_confirm_delete.html', {'invoice': invoice})
@@ -478,9 +497,15 @@ def payment_record(request, invoice_pk):
         if form.is_valid():
             payment = form.save(commit=False)
             payment.invoice = invoice
+            payment.recorded_by = request.user
             payment.save()
             invoice.paid += payment.amount
             invoice.save()
+            invoice.customer.recalculate_balance()
+            PaymentAuditLog.objects.create(
+                invoice=invoice, payment=payment, action='payment_recorded',
+                actor=request.user, metadata={'amount': str(payment.amount), 'method': payment.method},
+            )
             messages.success(request, 'Payment recorded!')
             return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
@@ -539,6 +564,258 @@ def mpesa_callback(request):
 
     return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Accepted'})
 
+
+def _payment_request_pay_url(request, payment_request):
+    return request.build_absolute_uri(reverse('pay:pay', args=[payment_request.token]))
+
+
+REMINDER_COOLDOWN = timedelta(hours=24)
+
+
+@role_required('OWNER', 'MANAGER')
+def payment_request_create(request, invoice_pk):
+    """Owner/Manager-only: creates a payment request against an invoice.
+    Doesn't send anything by itself -- sending via a specific channel
+    (WhatsApp/SMS/email) or copying the link happens from the invoice
+    detail page afterward, since a request can be shared more than one
+    way and doesn't have to be sent immediately."""
+    invoice = get_object_or_404(Invoice, pk=invoice_pk)
+    if invoice.balance <= 0:
+        messages.info(request, 'This invoice has no outstanding balance to request.')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    if request.method == 'POST':
+        form = PaymentRequestForm(request.POST)
+        if form.is_valid():
+            payment_request = form.save(commit=False)
+            payment_request.invoice = invoice
+            # Explicit, not left to auto-assignment -- matches the same
+            # pattern sales/mpesa.py already uses for the same reason.
+            payment_request.tenant = invoice.tenant
+            payment_request.created_by = request.user
+            payment_request.save()
+            if payment_request.due_date:
+                invoice.due_date = payment_request.due_date
+                invoice.save(update_fields=['due_date'])
+            PaymentAuditLog.objects.create(
+                invoice=invoice, payment_request=payment_request, action='request_created',
+                actor=request.user, metadata={'amount_due': str(payment_request.amount_due)},
+            )
+            messages.success(request, 'Payment request created — send it to the customer below.')
+            return redirect('sales:invoice_detail', pk=invoice.pk)
+    else:
+        form = PaymentRequestForm(initial={'amount_due': invoice.balance, 'due_date': invoice.due_date})
+    return render(request, 'sales/payment_request_form.html', {'form': form, 'invoice': invoice})
+
+
+@role_required('OWNER', 'MANAGER')
+@require_POST
+def payment_request_send(request, pk, channel):
+    """Sends (or re-sends) a payment request via one channel. The amount
+    quoted is always invoice.balance at send time, never the stale
+    amount_due snapshot -- so a request sent after a partial payment
+    already landed quotes the real remaining balance."""
+    payment_request = get_object_or_404(PaymentRequest, pk=pk)
+    invoice = payment_request.invoice
+    amount = invoice.balance
+    pay_url = _payment_request_pay_url(request, payment_request)
+
+    if channel == 'whatsapp':
+        success, note = send_payment_request_whatsapp(payment_request, amount)
+    elif channel == 'sms':
+        message = (
+            f"Hello {invoice.customer.name}, your {invoice.tenant.name if invoice.tenant else ''} "
+            f"invoice #{invoice.pk} has an outstanding balance of KES {amount:,.2f}. "
+            f"Pay here: {pay_url}"
+        )
+        success, note = send_sms(invoice.customer.phone, message)
+    elif channel == 'email':
+        if not invoice.customer.email:
+            success, note = False, 'This customer has no email address on file. Add one on the customer record first.'
+        else:
+            body = render_to_string('sales/payment_request_email.html', {
+                'customer_name': invoice.customer.name,
+                'business_name': invoice.tenant.name if invoice.tenant else 'Your business',
+                'invoice_id': invoice.pk,
+                'amount': f'{amount:,.2f}',
+                'due_date': payment_request.due_date,
+                'instructions': payment_request.instructions,
+                'pay_url': pay_url,
+            })
+            send_mail(
+                f'Payment request — Invoice #{invoice.pk}', body,
+                getattr(settings, 'DEFAULT_FROM_EMAIL', None), [invoice.customer.email],
+            )
+            success, note = True, f'Emailed to {invoice.customer.email}.'
+    else:
+        return HttpResponseBadRequest('Unknown channel')
+
+    if success:
+        if not payment_request.sent_at:
+            payment_request.sent_at = timezone.now()
+        if payment_request.status == 'pending':
+            payment_request.status = 'sent'
+        payment_request.save(update_fields=['sent_at', 'status'])
+        PaymentAuditLog.objects.create(
+            invoice=invoice, payment_request=payment_request, action='request_sent',
+            actor=request.user, metadata={'channel': channel, 'amount': str(amount)},
+        )
+        messages.success(request, note)
+    else:
+        messages.warning(request, note)
+
+    return redirect('sales:invoice_detail', pk=invoice.pk)
+
+
+@role_required('OWNER', 'MANAGER')
+@require_POST
+def payment_reminder_send(request, pk):
+    """Manual 'Send Reminder' -- reuses whichever channels are actually
+    configured (WhatsApp, then SMS) rather than requiring the sender to
+    pick one each time. Refuses to send again inside REMINDER_COOLDOWN of
+    the last reminder, so repeated clicks can't spam the customer."""
+    payment_request = get_object_or_404(PaymentRequest, pk=pk)
+    invoice = payment_request.invoice
+
+    if payment_request.last_reminder_sent_at and timezone.now() - payment_request.last_reminder_sent_at < REMINDER_COOLDOWN:
+        next_ok = payment_request.last_reminder_sent_at + REMINDER_COOLDOWN
+        messages.warning(request, f"A reminder was already sent recently. Next one can go out after {timezone.localtime(next_ok):%d %b, %H:%M}.")
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    amount = invoice.balance
+    pay_url = _payment_request_pay_url(request, payment_request)
+    sent_via = send_payment_request_reminder(payment_request, pay_url)
+
+    if not sent_via:
+        messages.warning(request, "Couldn't send a reminder — check that WhatsApp or SMS is configured, or that the customer has a phone number on file.")
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    payment_request.last_reminder_sent_at = timezone.now()
+    payment_request.reminder_count = F('reminder_count') + 1
+    payment_request.save(update_fields=['last_reminder_sent_at', 'reminder_count'])
+    PaymentAuditLog.objects.create(
+        invoice=invoice, payment_request=payment_request, action='reminder_sent',
+        actor=request.user, metadata={'channels': sent_via, 'amount': str(amount)},
+    )
+    messages.success(request, f"Reminder sent via {' and '.join(sent_via)}.")
+    return redirect('sales:invoice_detail', pk=invoice.pk)
+
+
+@role_required('OWNER', 'MANAGER')
+@require_POST
+def payment_request_cancel(request, pk):
+    payment_request = get_object_or_404(PaymentRequest, pk=pk)
+    payment_request.status = 'cancelled'
+    payment_request.save(update_fields=['status'])
+    PaymentAuditLog.objects.create(
+        invoice=payment_request.invoice, payment_request=payment_request,
+        action='request_cancelled', actor=request.user, metadata={},
+    )
+    messages.success(request, 'Payment request cancelled — the link will no longer accept payment.')
+    return redirect('sales:invoice_detail', pk=payment_request.invoice_id)
+
+
+@role_required('OWNER', 'MANAGER')
+def payment_refund(request, payment_pk):
+    """Reverses a confirmed payment in full -- no partial-amount field,
+    since a refund spanning only part of one payment is ambiguous about
+    which part. Only ever touches this one Payment and its invoice."""
+    payment = get_object_or_404(Payment, pk=payment_pk, status='confirmed')
+    invoice = payment.invoice
+    if request.method == 'POST':
+        form = PaymentRefundForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                payment.status = 'refunded'
+                payment.refunded_at = timezone.now()
+                payment.refunded_by = request.user
+                payment.refund_reason = form.cleaned_data['refund_reason']
+                payment.save(update_fields=['status', 'refunded_at', 'refunded_by', 'refund_reason'])
+                invoice.paid = F('paid') - payment.amount
+                invoice.save(update_fields=['paid'])
+                invoice.refresh_from_db(fields=['paid'])
+            invoice.customer.recalculate_balance()
+            PaymentAuditLog.objects.create(
+                invoice=invoice, payment=payment, action='payment_refunded',
+                actor=request.user, metadata={'amount': str(payment.amount), 'reason': payment.refund_reason},
+            )
+            messages.success(request, f'Payment of KES {payment.amount:,.2f} refunded.')
+            return redirect('sales:invoice_detail', pk=invoice.pk)
+    else:
+        form = PaymentRefundForm()
+    return render(request, 'sales/payment_refund_form.html', {'form': form, 'payment': payment, 'invoice': invoice})
+
+
+@role_required('OWNER', 'MANAGER')
+def payment_dashboard(request):
+    """Payment-focused view across every invoice: what's been collected,
+    what's outstanding, what's overdue, and a per-invoice action table.
+    Read-only -- every number here is derived from existing Invoice/
+    Payment/MpesaTransaction/PaymentRequest data, nothing is written."""
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+
+    invoices = Invoice.objects.select_related('customer').order_by('-date')
+    total_sales = invoices.aggregate(t=Sum('total'))['t'] or 0
+    total_received = Payment.objects.filter(status='confirmed').aggregate(t=Sum('amount'))['t'] or 0
+    outstanding = invoices.aggregate(t=Sum('total'), p=Sum('paid'))
+    total_outstanding = (outstanding['t'] or 0) - (outstanding['p'] or 0)
+    partial_count = invoices.filter(paid__gt=0, paid__lt=F('total')).count()
+    pending_requests_count = PaymentRequest.objects.filter(status__in=['pending', 'sent']).count()
+    failed_mpesa_count = MpesaTransaction.objects.filter(status='failed').count()
+
+    collections_today = Payment.objects.filter(status='confirmed', date__date=today).aggregate(t=Sum('amount'))['t'] or 0
+    collections_week = Payment.objects.filter(status='confirmed', date__date__gte=week_start).aggregate(t=Sum('amount'))['t'] or 0
+    collections_month = Payment.objects.filter(status='confirmed', date__date__gte=month_start).aggregate(t=Sum('amount'))['t'] or 0
+
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '')
+    rows_qs = invoices
+    if search_query:
+        rows_qs = rows_qs.filter(Q(id__icontains=search_query) | Q(customer__name__icontains=search_query))
+    if status_filter == 'paid':
+        rows_qs = rows_qs.filter(paid__gte=F('total'))
+    elif status_filter == 'partial':
+        rows_qs = rows_qs.filter(paid__gt=0, paid__lt=F('total'))
+    elif status_filter == 'pending':
+        rows_qs = rows_qs.filter(paid=0)
+
+    context = {
+        'total_sales': total_sales,
+        'total_received': total_received,
+        'total_outstanding': total_outstanding,
+        'partial_count': partial_count,
+        'pending_requests_count': pending_requests_count,
+        'failed_mpesa_count': failed_mpesa_count,
+        'collections_today': collections_today,
+        'collections_week': collections_week,
+        'collections_month': collections_month,
+        'invoices': rows_qs[:100],
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    return render(request, 'sales/payment_dashboard.html', context)
+
+
+@csrf_exempt
+def cron_send_payment_reminders(request):
+    """Vercel Cron hits this on a schedule (see vercel.json) as a plain
+    GET request -- there's no persistent worker process on serverless to
+    run a bare management command directly, only HTTP-triggered
+    functions, and Vercel Cron specifically always calls with GET, never
+    POST. CRON_SECRET (which Vercel sends automatically as a Bearer
+    token for cron-triggered requests) is the only thing standing in for
+    a logged-in user here, so this is exempted from login in
+    EXEMPT_PREFIXES, not from this check -- an unset/wrong secret must
+    still refuse the request."""
+    expected = f'Bearer {settings.CRON_SECRET}'
+    if not settings.CRON_SECRET or request.headers.get('Authorization') != expected:
+        return HttpResponseForbidden('Invalid or missing cron secret')
+
+    from django.core.management import call_command
+    call_command('send_payment_reminders')
+    return JsonResponse({'status': 'ok'})
 
 
 @role_required('OWNER', 'MANAGER')

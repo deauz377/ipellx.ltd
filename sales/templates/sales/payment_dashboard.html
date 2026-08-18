@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments - 14xlevel ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Reuses the same kpi-card/table-card/status-badge visual system as
+       dashboard/overview.html -- only the pieces actually needed here,
+       not that page's bespoke top-menu/header layout. */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .kpi-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 18px 20px;
+        display: flex;
+        align-items: flex-start;
+    }
+    .kpi-icon {
+        width: 44px; height: 44px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; margin-right: 14px; flex-shrink: 0;
+    }
+    .kpi-icon.primary { background-color: #E8F1F8; color: var(--primary); }
+    .kpi-icon.success { background-color: #D1FAE5; color: var(--success); }
+    .kpi-icon.warning { background-color: #FEF3C7; color: var(--warning); }
+    .kpi-icon.error { background-color: #FEE2E2; color: var(--error); }
+    .kpi-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .table-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+    .table-body { overflow-x: auto; }
+
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .status-paid { background-color: #D1FAE5; color: #065F46; }
+    .status-pending { background-color: #FEF3C7; color: #92400E; }
+    .status-partial { background-color: #DBEAFE; color: #1E40AF; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-cash-coin"></i> Payments</h1>
+    <a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary btn-sm">View Invoices</a>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-graph-up"></i></div>
+        <div><div class="kpi-label">Total Sales</div><div class="kpi-value">KES {{ total_sales|floatformat:0 }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-cash-stack"></i></div>
+        <div><div class="kpi-label">Total Received</div><div class="kpi-value">KES {{ total_received|floatformat:0 }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon error"><i class="bi bi-exclamation-circle"></i></div>
+        <div><div class="kpi-label">Outstanding</div><div class="kpi-value">KES {{ total_outstanding|floatformat:0 }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon warning"><i class="bi bi-hourglass-split"></i></div>
+        <div><div class="kpi-label">Partially Paid Invoices</div><div class="kpi-value">{{ partial_count }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon warning"><i class="bi bi-send-check"></i></div>
+        <div><div class="kpi-label">Pending Requests</div><div class="kpi-value">{{ pending_requests_count }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon error"><i class="bi bi-x-octagon"></i></div>
+        <div><div class="kpi-label">Failed M-Pesa Attempts</div><div class="kpi-value">{{ failed_mpesa_count }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-calendar-day"></i></div>
+        <div><div class="kpi-label">Today's Collections</div><div class="kpi-value">KES {{ collections_today|floatformat:0 }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-calendar-week"></i></div>
+        <div><div class="kpi-label">This Week</div><div class="kpi-value">KES {{ collections_week|floatformat:0 }}</div></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-calendar-month"></i></div>
+        <div><div class="kpi-label">This Month</div><div class="kpi-value">KES {{ collections_month|floatformat:0 }}</div></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Invoice number or customer...">
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>Partially Paid</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2"><i class="bi bi-search"></i></button>
+                <a href="{% url 'sales:payment_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header"><h3>Invoices</h3></div>
+    <div class="table-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Invoice</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><a href="{% url 'customers:customer_detail' invoice.customer.pk %}">{{ invoice.customer.name }}</a></td>
+                    <td>#{{ invoice.id }}</td>
+                    <td>KES {{ invoice.total|floatformat:0 }}</td>
+                    <td>KES {{ invoice.paid|floatformat:0 }}</td>
+                    <td>KES {{ invoice.balance|floatformat:0 }}</td>
+                    <td>
+                        {% if invoice.payment_status == 'paid' %}<span class="status-badge status-paid">Paid</span>
+                        {% elif invoice.payment_status == 'partial' %}<span class="status-badge status-partial">Partial</span>
+                        {% else %}<span class="status-badge status-pending">Pending</span>{% endif %}
+                    </td>
+                    <td>{{ invoice.due_date|date:"d M Y"|default:"—" }}</td>
+                    <td class="text-nowrap">
+                        <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                        {% if invoice.balance > 0 %}
+                        <a href="{% url 'sales:payment_request_create' invoice.pk %}" class="btn btn-sm btn-outline-info" title="Request Payment"><i class="bi bi-send-check"></i></a>
+                        <a href="{% url 'sales:payment_record' invoice.pk %}" class="btn btn-sm btn-outline-success" title="Record Payment"><i class="bi bi-cash-coin"></i></a>
+                        {% endif %}
+                        <a href="{% url 'customers:customer_detail' invoice.customer.pk %}" class="btn btn-sm btn-outline-secondary" title="Payment History"><i class="bi bi-clock-history"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No invoices found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

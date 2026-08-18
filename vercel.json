@@ -7,5 +7,8 @@
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/cron/send-payment-reminders/", "schedule": "0 7 * * *" }
   ]
 }

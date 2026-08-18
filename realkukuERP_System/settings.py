@@ -86,6 +86,16 @@ CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS') or [
     f'https://{host}' for host in ALLOWED_HOSTS if host not in ('127.0.0.1', 'localhost', 'testserver')
 ]
 
+# Absolute base URL for links sent from contexts with no HTTP request to
+# build one from (e.g. send_payment_reminders, run by Vercel Cron with no
+# request object at all) -- see sales.utils.build_pay_url(). Views that do
+# have a request use request.build_absolute_uri() instead, which is more
+# reliable behind a proxy; this is only the fallback for the rest.
+SITE_URL = os.environ.get('SITE_URL', '')
+if not SITE_URL:
+    _platform_host = next((os.environ.get(v) for v in PLATFORM_HOST_VARS if os.environ.get(v)), None)
+    SITE_URL = f'https://{_platform_host}' if _platform_host else ''
+
 if not DEBUG:
     # The platform terminates TLS and forwards the original scheme in this header.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -235,6 +245,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@14xlevel-erp
 WHATSAPP_API_TOKEN = os.environ.get('WHATSAPP_API_TOKEN', '')
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
 WHATSAPP_TEMPLATE_NAME = os.environ.get('WHATSAPP_TEMPLATE_NAME', 'purchase_order_alert')
+# A payment request is a different message shape from the purchase-order
+# alert above, so WhatsApp requires it to be its own separately-approved
+# template -- see sales.whatsapp.send_payment_request_whatsapp().
+WHATSAPP_PAYMENT_TEMPLATE_NAME = os.environ.get('WHATSAPP_PAYMENT_TEMPLATE_NAME', 'payment_request_alert')
 
 # M-Pesa Daraja API (Safaricom), for STK Push ("Lipa Na M-Pesa Online")
 # customer payments on invoices. Needs a Safaricom Daraja developer
@@ -253,6 +267,20 @@ MPESA_ENVIRONMENT = os.environ.get('MPESA_ENVIRONMENT', 'sandbox')
 # POST the payment result here. localhost cannot receive this without a
 # tunnel (ngrok etc.); it only really works once deployed.
 MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', '')
+
+# Africa's Talking, for SMS payment requests/reminders. Needs an Africa's
+# Talking account and an application API key -- see AFRICASTALKING_SETUP.md.
+# Without these, sales.sms.send_sms() reports 'not_configured' instead of
+# pretending to send, matching the WhatsApp/M-Pesa pattern above.
+AT_USERNAME = os.environ.get('AT_USERNAME', '')
+AT_API_KEY = os.environ.get('AT_API_KEY', '')
+# Optional -- Africa's Talking uses a generic shared shortcode if unset.
+AT_SENDER_ID = os.environ.get('AT_SENDER_ID', '')
+
+# Shared secret Vercel Cron sends as `Authorization: Bearer <value>` when it
+# calls /cron/ endpoints -- without this set, those endpoints refuse every
+# request rather than running the job for an unauthenticated caller.
+CRON_SECRET = os.environ.get('CRON_SECRET', '')
 
 
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

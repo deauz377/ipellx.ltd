@@ -92,3 +92,66 @@ def send_supplier_order_alert(order):
     order.supplier_notified_at = timezone.now()
     order.supplier_notification_status = 'sent'
     return True, f'Alert sent to {supplier.name} via WhatsApp.'
+
+
+def send_payment_request_whatsapp(payment_request, amount):
+    """Sends a WhatsApp template message asking the customer to pay
+    `amount` (always the invoice's live balance -- see sales/views.py,
+    never payment_request.amount_due, which can go stale). Separate
+    template from send_supplier_order_alert()'s -- WhatsApp requires each
+    distinct business-initiated message shape to be its own pre-approved
+    template, so this needs its own approval in Meta Business Manager
+    (see WHATSAPP_SETUP.md) before WHATSAPP_PAYMENT_TEMPLATE_NAME will
+    actually deliver anything.
+
+    Returns (success: bool, message: str). Never raises."""
+    if not (settings.WHATSAPP_API_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID):
+        return False, (
+            "WhatsApp isn't set up for this deployment yet. See WHATSAPP_SETUP.md — "
+            'you need a Meta Business Account, an approved message template, and '
+            'WHATSAPP_API_TOKEN / WHATSAPP_PHONE_NUMBER_ID in the environment.'
+        )
+
+    invoice = payment_request.invoice
+    customer = invoice.customer
+    if not customer.phone:
+        return False, 'This customer has no phone number on file. Add one on the customer record first.'
+
+    business_name = invoice.tenant.name if invoice.tenant else 'Your business'
+
+    url = f'https://graph.facebook.com/{WHATSAPP_API_VERSION}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages'
+    payload = {
+        'messaging_product': 'whatsapp',
+        'to': customer.phone,
+        'type': 'template',
+        'template': {
+            'name': settings.WHATSAPP_PAYMENT_TEMPLATE_NAME,
+            'language': {'code': 'en_US'},
+            # Parameter order must match whatever body text was approved
+            # for this template in Meta Business Manager -- see
+            # WHATSAPP_SETUP.md for the exact wording these line up with.
+            'components': [{
+                'type': 'body',
+                'parameters': [
+                    {'type': 'text', 'text': customer.name},
+                    {'type': 'text', 'text': business_name},
+                    {'type': 'text', 'text': str(invoice.pk)},
+                    {'type': 'text', 'text': f'KES {amount:,.2f}'},
+                ],
+            }],
+        },
+    }
+    headers = {
+        'Authorization': f'Bearer {settings.WHATSAPP_API_TOKEN}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+    except requests.RequestException as exc:
+        return False, f'Could not reach WhatsApp: {exc}'
+
+    if response.status_code >= 400:
+        return False, f'WhatsApp API rejected the message ({response.status_code}): {response.text[:200]}'
+
+    return True, f'Payment request sent to {customer.name} via WhatsApp.'

@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import formset_factory
-from .models import Invoice, InvoiceItem, Payment, Order, OrderItem, DailySalesEntry, ProfitEntry
+from .models import Invoice, InvoiceItem, Payment, PaymentRequest, Order, OrderItem, DailySalesEntry, ProfitEntry
 from inventory.models import Product
 from customers.models import Customer
 
@@ -80,11 +80,34 @@ class OrderItemForm(forms.ModelForm):
 class PaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
-        fields = ['method', 'amount']
+        fields = ['method', 'amount', 'reference', 'notes']
         widgets = {
             'method': forms.Select(attrs={'class': 'form-select'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'reference': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Transaction/reference number (optional)'}),
+            'notes': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
         }
+
+
+class PaymentRequestForm(forms.ModelForm):
+    class Meta:
+        model = PaymentRequest
+        fields = ['amount_due', 'due_date', 'instructions']
+        widgets = {
+            'amount_due': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional payment instructions shown to the customer'}),
+        }
+
+
+class PaymentRefundForm(forms.Form):
+    """Refunding always reverses the full amount of a single payment --
+    no partial-amount field, which would leave it ambiguous which part
+    of a multi-payment invoice the refund was actually against."""
+    refund_reason = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Why is this being refunded?'}),
+    )
 
 
 class QuickSaleForm(forms.Form):

@@ -15,6 +15,13 @@ EXEMPT_PREFIXES = (
     # Safaricom's servers POST the STK Push result here directly -- there is
     # no logged-in user on the other end of that request.
     '/sales/mpesa/callback/',
+    # The customer-facing payment page -- secured by an unguessable token
+    # in the URL itself, not a login. The customer paying an invoice was
+    # never asked to have an account here at all.
+    '/pay/',
+    # Vercel Cron calls these directly; they check CRON_SECRET themselves
+    # rather than relying on a logged-in user (there isn't one).
+    '/cron/',
 )
 
 

@@ -1,0 +1,13 @@
+Hello {{ customer_name }},
+
+{{ business_name }} has sent you a payment request for Invoice #{{ invoice_id }}.
+
+Amount due: KES {{ amount }}
+{% if due_date %}Due date: {{ due_date }}
+{% endif %}
+{% if instructions %}{{ instructions }}
+
+{% endif %}Pay online here:
+{{ pay_url }}
+
+If you've already paid this, you can ignore this message.

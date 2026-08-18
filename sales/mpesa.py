@@ -19,7 +19,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Invoice, MpesaTransaction, Payment
+from .models import Invoice, MpesaTransaction, Payment, PaymentAuditLog
 
 DARAJA_BASE_URLS = {
     'sandbox': 'https://sandbox.safaricom.co.ke',
@@ -187,11 +187,20 @@ def handle_callback(payload):
         # than whichever business this invoice actually belongs to.
         payment = Payment.objects.create(
             invoice=transaction.invoice, method='mpesa', amount=transaction.amount,
-            tenant=transaction.tenant,
+            reference=transaction.mpesa_receipt_number, tenant=transaction.tenant,
         )
         invoice = transaction.invoice
         invoice.paid = invoice.paid + transaction.amount
         invoice.save(update_fields=['paid'])
+        invoice.customer.recalculate_balance()
+
+        # tenant= explicit here for the same reason as the Payment above --
+        # no logged-in user in this webhook context to auto-fill it from.
+        PaymentAuditLog.objects.create(
+            invoice=invoice, payment=payment, action='payment_confirmed',
+            tenant=transaction.tenant,
+            metadata={'mpesa_receipt_number': transaction.mpesa_receipt_number, 'amount': str(transaction.amount)},
+        )
     else:
         transaction.status = 'failed'
         transaction.save()

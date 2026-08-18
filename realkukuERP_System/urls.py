@@ -19,6 +19,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.static import serve
 
+from sales.views import cron_send_payment_reminders
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
@@ -30,6 +32,12 @@ urlpatterns = [
     path('payroll/', include('payroll.urls')),
     path('hr/', include('hr.urls')),
     path('accounting/', include('accounting.urls')),
+    # Unauthenticated customer-facing payment page -- secured by the
+    # unguessable token in the URL itself, not a login. See
+    # core.middleware.EXEMPT_PREFIXES and sales/views_public.py.
+    path('pay/', include('sales.urls_public')),
+    # Vercel Cron target -- authenticates via CRON_SECRET, not a login.
+    path('cron/send-payment-reminders/', cron_send_payment_reminders, name='cron_send_payment_reminders'),
 ]
 
 # WhiteNoise serves STATIC_ROOT but not user uploads, so when files live on a

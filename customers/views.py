@@ -45,9 +45,14 @@ def customer_create(request):
     return render(request, 'customers/customer_form.html', {'form': form, 'title': 'Add Customer'})
 
 def customer_detail(request, pk):
+    from sales.models import Payment  # local import -- sales already imports Customer at module level
+
     customer = get_object_or_404(Customer, pk=pk)
     credits = CreditRecord.objects.filter(customer=customer)
-    return render(request, 'customers/customer_detail.html', {'customer': customer, 'credits': credits})
+    payments = Payment.objects.filter(invoice__customer=customer).select_related('invoice').order_by('-date')
+    return render(request, 'customers/customer_detail.html', {
+        'customer': customer, 'credits': credits, 'payments': payments,
+    })
 
 def customer_edit(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
