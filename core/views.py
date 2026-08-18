@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash, login
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
@@ -10,6 +12,32 @@ from .forms import UsernameChangeForm, StyledPasswordChangeForm, SignupForm
 from tenants.models import Tenant, User, SubscriptionPlan, SubscriptionPayment
 
 TRIAL_DAYS = 14
+
+
+def admin_run_migrations(request):
+    """Ops endpoint: applies pending Django migrations against whichever
+    database this deployment is already configured for. Exists because
+    Vercel's serverless runtime has no shell access -- this deployment's
+    own environment already holds DATABASE_URL (it uses it for every
+    normal request), so triggering `migrate` here means that credential
+    never has to leave Vercel's dashboard or get typed/pasted anywhere
+    else. Guarded by CRON_SECRET (same secret as the reminder cron
+    endpoint) via a Bearer header -- migrate is idempotent, so repeat
+    calls are harmless, but a leaked secret would let someone re-trigger
+    it at will, which is why this isn't left unauthenticated."""
+    expected = f'Bearer {settings.CRON_SECRET}'
+    if not settings.CRON_SECRET or request.headers.get('Authorization') != expected:
+        return HttpResponseForbidden('Invalid or missing secret')
+
+    from io import StringIO
+    from django.core.management import call_command
+
+    output = StringIO()
+    try:
+        call_command('migrate', interactive=False, stdout=output, stderr=output)
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'output': output.getvalue(), 'error': str(exc)}, status=500)
+    return JsonResponse({'ok': True, 'output': output.getvalue()})
 
 
 def signup(request):

@@ -20,6 +20,7 @@ from django.urls import path, include
 from django.views.static import serve
 
 from sales.views import cron_send_payment_reminders
+from core.views import admin_run_migrations
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,6 +39,9 @@ urlpatterns = [
     path('pay/', include('sales.urls_public')),
     # Vercel Cron target -- authenticates via CRON_SECRET, not a login.
     path('cron/send-payment-reminders/', cron_send_payment_reminders, name='cron_send_payment_reminders'),
+    # Ops: trigger `migrate` on this deployment's own database without ever
+    # needing DATABASE_URL outside Vercel's own environment. Same CRON_SECRET.
+    path('cron/migrate/', admin_run_migrations, name='admin_run_migrations'),
 ]
 
 # WhiteNoise serves STATIC_ROOT but not user uploads, so when files live on a
