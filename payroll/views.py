@@ -18,17 +18,17 @@ from .forms import (
 
 
 class ManagerRequiredMixin:
-    """Restricts a class-based view to OWNER/MANAGER — payroll involves
-    salary and payment data, which Staff should never see."""
+    """Restricts a class-based view to OWNER/MANAGER/ACCOUNTANT — payroll
+    involves salary and payment data, which Staff should never see."""
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not request.user.has_role('OWNER', 'MANAGER'):
+        if not request.user.has_role('OWNER', 'MANAGER', 'ACCOUNTANT'):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def payroll_dashboard(request):
     """Payroll dashboard overview"""
     tenant = request.user.tenant
@@ -231,7 +231,7 @@ class PayrollRunCreateView(ManagerRequiredMixin, LoginRequiredMixin, CreateView)
         return super().form_valid(form)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def generate_payslips(request, pk):
     """Generate payslips for a payroll run"""
     payroll_run = get_object_or_404(PayrollRun, pk=pk)
@@ -244,7 +244,7 @@ def generate_payslips(request, pk):
     return render(request, 'payroll/generate_payslips.html', {'payroll_run': payroll_run})
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def payslip_detail(request, pk):
     """View payslip details"""
     payslip = get_object_or_404(Payslip, pk=pk)
@@ -255,7 +255,7 @@ def payslip_detail(request, pk):
     return render(request, 'payroll/payslip_detail.html', context)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def process_payments(request, pk):
     """Process payments for payroll run"""
     payroll_run = get_object_or_404(PayrollRun, pk=pk)

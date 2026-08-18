@@ -443,6 +443,29 @@ def approve_advance(request, pk):
     return render(request, 'hr/approve_advance.html', {'advance': advance})
 
 
+@role_required('OWNER', 'MANAGER')
+def reject_advance(request, pk):
+    """Reject an employee advance -- mirrors reject_leave_request's shape.
+    EmployeeAdvance has no dedicated rejection_reason field (unlike
+    LeaveRequest), so the reason is appended to its existing free-text
+    `notes` field rather than adding a new column for this alone."""
+    advance = get_object_or_404(EmployeeAdvance, pk=pk)
+    if advance.employee.user_id == request.user.id:
+        messages.error(request, "You can't act on your own advance request. Ask the Owner to review it.")
+        return redirect('hr:advance_list')
+    if request.method == 'POST':
+        reason = request.POST.get('rejection_reason', '')
+        advance.status = 'rejected'
+        advance.approved_by = request.user
+        advance.approval_date = timezone.now()
+        if reason:
+            advance.notes = f'{advance.notes}\n\nRejection reason: {reason}'.strip()
+        advance.save()
+        messages.success(request, 'Advance rejected!')
+        return redirect('hr:advance_list')
+    return render(request, 'hr/reject_advance.html', {'advance': advance})
+
+
 class RecruitmentListView(ManagerRequiredMixin, LoginRequiredMixin, ListView):
     model = Recruitment
     template_name = 'hr/recruitment_list.html'

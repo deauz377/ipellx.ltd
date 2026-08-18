@@ -46,18 +46,21 @@ class RoleAwareLoginForm(AuthenticationForm):
         return cleaned_data
 
 
+NON_OWNER_ROLES = (
+    User.Role.MANAGER, User.Role.ACCOUNTANT, User.Role.SALES_STAFF,
+    User.Role.INVENTORY_MANAGER, User.Role.STAFF,
+)
+
+
 class TeamMemberCreationForm(forms.Form):
-    """Owner-only: creates a Manager or Staff login within the Owner's own
+    """Owner-only: creates a non-Owner login within the Owner's own
     tenant. Deliberately excludes Role.OWNER from the choices -- User.save()
     grants Django admin superuser access whenever role is set to OWNER, so
     that option must never be selectable here."""
     username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     role = forms.ChoiceField(
-        choices=[
-            (User.Role.MANAGER, User.Role.MANAGER.label),
-            (User.Role.STAFF, User.Role.STAFF.label),
-        ],
+        choices=[(role, role.label) for role in NON_OWNER_ROLES],
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
@@ -71,7 +74,7 @@ class TeamMemberCreationForm(forms.Form):
 
     def clean_role(self):
         role = self.cleaned_data['role']
-        if role not in (User.Role.MANAGER, User.Role.STAFF):
+        if role not in NON_OWNER_ROLES:
             raise forms.ValidationError('Invalid role.')
         return role
 

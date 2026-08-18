@@ -40,9 +40,17 @@ class Tenant(models.Model):
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        OWNER = 'OWNER', 'Owner'
+        # Labels only, not stored values -- every existing role_required()/
+        # has_role() call across the app keys off the stored string (OWNER/
+        # MANAGER/STAFF unchanged), so relabeling here is zero-risk. "CEO"
+        # and "Employee" are how the business-facing UI refers to the
+        # existing Owner/Staff roles; they are not new roles.
+        OWNER = 'OWNER', 'CEO'
         MANAGER = 'MANAGER', 'Manager'
-        STAFF = 'STAFF', 'Staff'
+        ACCOUNTANT = 'ACCOUNTANT', 'Accountant'
+        SALES_STAFF = 'SALES_STAFF', 'Sales Staff'
+        INVENTORY_MANAGER = 'INVENTORY_MANAGER', 'Inventory Manager'
+        STAFF = 'STAFF', 'Employee'
 
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STAFF)

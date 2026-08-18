@@ -46,6 +46,7 @@ urlpatterns = [
     path('advances/', views.EmployeeAdvanceListView.as_view(), name='advance_list'),
     path('advances/create/', views.EmployeeAdvanceCreateView.as_view(), name='advance_create'),
     path('advances/<int:pk>/approve/', views.approve_advance, name='approve_advance'),
+    path('advances/<int:pk>/reject/', views.reject_advance, name='reject_advance'),
     
     # Recruitment
     path('recruitment/', views.RecruitmentListView.as_view(), name='recruitment_list'),

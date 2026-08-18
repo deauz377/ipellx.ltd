@@ -590,9 +590,28 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
             </li>
+            {% if user.role == 'OWNER' %}
             <li>
-                <a class="{% if request.resolver_match.app_name == 'sales' %}active{% endif %}" href="/sales/">
+                <a class="{% if request.resolver_match.url_name == 'ceo_dashboard' %}active{% endif %}" href="{% url 'ceo_dashboard' %}">
+                    <i class="bi bi-graph-up-arrow"></i> CEO Dashboard
+                </a>
+            </li>
+            {% endif %}
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'approval_center' %}active{% endif %}" href="{% url 'approval_center' %}">
+                    <i class="bi bi-inbox"></i> Approvals
+                </a>
+            </li>
+            {% endif %}
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'sales' and 'payment' not in request.resolver_match.url_name %}active{% endif %}" href="/sales/">
                     <i class="bi bi-receipt"></i> Sales
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'sales' and 'payment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'sales:payment_dashboard' %}">
+                    <i class="bi bi-cash-coin"></i> Payments
                 </a>
             </li>
             <li>

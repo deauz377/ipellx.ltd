@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}CEO Dashboard - 14xlevel ERP{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .kpi-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; align-items: flex-start; }
+    .kpi-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-right: 14px; flex-shrink: 0; }
+    .kpi-icon.primary { background-color: #E8F1F8; color: var(--primary); }
+    .kpi-icon.success { background-color: #D1FAE5; color: var(--success); }
+    .kpi-icon.warning { background-color: #FEF3C7; color: var(--warning); }
+    .kpi-icon.error { background-color: #FEE2E2; color: var(--error); }
+    .kpi-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+    .kpi-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .period-switch { display: flex; gap: 6px; flex-wrap: wrap; }
+    .period-switch a {
+        padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+        text-decoration: none; border: 1px solid var(--border); color: var(--text-secondary);
+    }
+    .period-switch a.active { background-color: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
+
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .chart-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .chart-card h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+    .chart-container { position: relative; height: 260px; }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .table-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .table-body { overflow-x: auto; }
+
+    .alert-feed { display: flex; flex-direction: column; gap: 8px; }
+    .alert-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; }
+    .alert-row.warning { background: rgba(245,158,11,0.1); color: #92400E; }
+    .alert-row.error { background: rgba(239,68,68,0.1); color: #991B1B; }
+    .alert-row.info { background: rgba(59,130,246,0.1); color: #1E40AF; }
+    .alert-row.success { background: rgba(16,185,129,0.1); color: #065F46; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-speedometer2"></i> CEO Dashboard</h1>
+    <div class="period-switch">
+        {% for key, label in period_options.items %}
+        <a href="?period={{ key }}" class="{% if period == key %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+</div>
+<p class="text-muted mb-4">{{ period_label }} &middot; {{ start_date|date:"d M Y" }} &ndash; {{ end_date|date:"d M Y" }}</p>
+
+<div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-graph-up"></i></div>
+        <div><div class="kpi-label">Total Revenue</div><div class="kpi-value">KES {{ total_revenue|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon error"><i class="bi bi-cash-flow"></i></div>
+        <div><div class="kpi-label">Total Expenses</div><div class="kpi-value">KES {{ total_expenses|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon success"><i class="bi bi-piggy-bank"></i></div>
+        <div><div class="kpi-label">Net Profit</div><div class="kpi-value">KES {{ net_profit|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-bank"></i></div>
+        <div><div class="kpi-label">Cash Position</div><div class="kpi-value">KES {{ cash_position|floatformat:0 }}</div>
+        <div class="kpi-sub">Bank accounts only, live-computed</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon warning"><i class="bi bi-people"></i></div>
+        <div><div class="kpi-label">Outstanding Customer Payments</div><div class="kpi-value">KES {{ outstanding_customer_payments|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon warning"><i class="bi bi-truck"></i></div>
+        <div><div class="kpi-label">Outstanding Supplier Payments</div><div class="kpi-value">KES {{ outstanding_supplier_payments|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-box-seam"></i></div>
+        <div><div class="kpi-label">Inventory Value</div><div class="kpi-value">KES {{ inventory_value|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon {% if low_stock_count %}error{% else %}success{% endif %}"><i class="bi bi-exclamation-diamond"></i></div>
+        <div><div class="kpi-label">Low-Stock Items</div><div class="kpi-value">{{ low_stock_count }}</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-person-badge"></i></div>
+        <div><div class="kpi-label">Employees</div><div class="kpi-value">{{ employee_count }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-wallet2"></i></div>
+        <div><div class="kpi-label">Latest Payroll Run</div>
+        {% if latest_payroll_run %}
+        <div class="kpi-value">KES {{ latest_payroll_run.total_net|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ latest_payroll_run.get_status_display }} &middot; {{ latest_payroll_run.payroll_period }}</div>
+        {% else %}<div class="kpi-value">&mdash;</div><div class="kpi-sub">No payroll run yet</div>{% endif %}
+        </div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-piggy-bank"></i></div>
+        <div><div class="kpi-label">Budget ({{ start_date.year }})</div>
+        <div class="kpi-value">KES {{ total_budgeted|floatformat:0 }}</div>
+        {% if budget_utilization_pct is not None %}
+        <div class="kpi-sub">{{ budget_utilization_pct }}% used this period (live estimate)</div>
+        {% else %}<div class="kpi-sub">No active budget set</div>{% endif %}
+        </div></div>
+    <div class="kpi-card"><div class="kpi-icon {% if pending_approvals_count %}warning{% else %}success{% endif %}"><i class="bi bi-inbox"></i></div>
+        <div><div class="kpi-label">Pending Approvals</div><div class="kpi-value">{{ pending_approvals_count }}</div>
+        <div class="kpi-sub"><a href="{% url 'approval_center' %}">View Approval Center &rarr;</a></div></div></div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-card">
+        <h3><i class="bi bi-graph-up"></i> Sales Performance</h3>
+        <div class="chart-container"><canvas id="salesTrendChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <h3><i class="bi bi-pie-chart"></i> Expense Performance</h3>
+        <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-bell"></i> Important Alerts</h3></div>
+    <div class="table-body" style="padding: 16px 20px;">
+        <div class="alert-feed">
+            {% for alert in alerts %}
+            <div class="alert-row {{ alert.level }}"><i class="bi bi-{{ alert.icon }}"></i> {{ alert.text }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if low_stock_products %}
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-box-seam"></i> Low-Stock Products</h3>
+        <a href="{% url 'inventory:product_list' %}" style="font-size: 0.85rem; color: var(--primary);">View Inventory &rarr;</a></div>
+    <div class="table-body">
+        <table class="table">
+            <thead><tr><th>Product</th><th>Stock</th><th>Minimum</th></tr></thead>
+            <tbody>
+                {% for p in low_stock_products %}
+                <tr><td>{{ p.name }}</td><td class="text-danger fw-bold">{{ p.quantity }}</td><td>{{ p.minimum_stock }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+new Chart(document.getElementById('salesTrendChart'), {
+    type: 'line',
+    data: {
+        labels: {{ sales_trend_labels|safe }},
+        datasets: [{ label: 'Sales', data: {{ sales_trend_data|safe }}, borderColor: '#2C5F8D', backgroundColor: 'rgba(44,95,141,0.1)', fill: true, tension: 0.3 }],
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+});
+new Chart(document.getElementById('expenseChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ expense_category_labels|safe }},
+        datasets: [{ data: {{ expense_category_data|safe }}, backgroundColor: ['#2C5F8D','#F59E0B','#10B981','#EF4444','#6B7280','#3D7BA8'] }],
+    },
+    options: { plugins: { legend: { position: 'bottom' } } },
+});
+</script>
+{% endblock %}

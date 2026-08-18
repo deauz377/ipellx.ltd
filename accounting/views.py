@@ -24,17 +24,17 @@ from .forms import (
 
 
 class ManagerRequiredMixin:
-    """Restricts a class-based view to OWNER/MANAGER — accounting data
-    (bank accounts, journals, budgets) shouldn't be visible to Staff."""
+    """Restricts a class-based view to OWNER/MANAGER/ACCOUNTANT — accounting
+    data (bank accounts, journals, budgets) shouldn't be visible to Staff."""
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not request.user.has_role('OWNER', 'MANAGER'):
+        if not request.user.has_role('OWNER', 'MANAGER', 'ACCOUNTANT'):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def accounting_dashboard(request):
     """Accounting dashboard overview"""
     tenant = request.user.tenant
@@ -135,7 +135,7 @@ class JournalEntryCreateView(ManagerRequiredMixin, LoginRequiredMixin, CreateVie
         return super().form_valid(form)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def post_journal_entry(request, pk):
     """Post a journal entry to GL"""
     entry = get_object_or_404(JournalEntry, pk=pk)
@@ -196,7 +196,7 @@ class InvoiceUpdateView(ManagerRequiredMixin, LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def mark_invoice_paid(request, pk):
     """Mark invoice as paid"""
     invoice = get_object_or_404(Invoice, pk=pk)
@@ -320,7 +320,7 @@ class BudgetCreateView(ManagerRequiredMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def trial_balance_report(request):
     """Generate trial balance report"""
     tenant = request.user.tenant
@@ -334,7 +334,7 @@ def trial_balance_report(request):
     return render(request, 'accounting/trial_balance.html', context)
 
 
-@role_required('OWNER', 'MANAGER')
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def bank_reconciliation(request):
     """Bank reconciliation view"""
     from decimal import Decimal
