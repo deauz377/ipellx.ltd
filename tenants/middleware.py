@@ -100,7 +100,16 @@ class SubscriptionGateMiddleware(MiddlewareMixin):
         if any(request.path.startswith(p) for p in self.ALLOWED_PATH_PREFIXES):
             return None
 
-        tenant = request.user.tenant
+        from .models import Tenant
+        try:
+            tenant = request.user.tenant
+        except (Tenant.DoesNotExist, DatabaseError):
+            # Same reasoning as TenantMiddleware: this runs on every
+            # authenticated request to a non-exempt path, so a DB hiccup
+            # or a stale tenant_id here must not take the whole site down
+            # for every logged-in visitor. Let the request through rather
+            # than gate on a subscription state we failed to read.
+            return None
         if tenant is None:
             return None
 
