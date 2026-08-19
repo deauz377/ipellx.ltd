@@ -1,5 +1,4 @@
 import threading
-from django.db import DatabaseError
 from django.utils.deprecation import MiddlewareMixin
 
 _local = threading.local()
@@ -44,15 +43,6 @@ class TenantMiddleware(MiddlewareMixin):
                 _local.tenant = None
                 _local.is_super_admin = False
                 request.tenant = None
-            except DatabaseError:
-                # A lapsed connection, paused DB, or missing table would
-                # otherwise take down every anonymous request site-wide
-                # (this lookup runs before login on every page, including
-                # the landing page). Degrade to "no tenant" instead of a
-                # hard 500 so at least the public/login pages stay up.
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
         else:
             # Default to 'default' tenant for localhost or no subdomain
             try:
@@ -61,10 +51,6 @@ class TenantMiddleware(MiddlewareMixin):
                 _local.is_super_admin = False
                 request.tenant = tenant
             except Tenant.DoesNotExist:
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
-            except DatabaseError:
                 _local.tenant = None
                 _local.is_super_admin = False
                 request.tenant = None
