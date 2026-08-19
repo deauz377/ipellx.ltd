@@ -23,7 +23,16 @@ class TenantMiddleware(MiddlewareMixin):
         # Subdomain-based resolution below is only a fallback for requests
         # where we don't yet know who's asking (login page, signup, etc.).
         if hasattr(request, 'user') and request.user.is_authenticated and request.user.tenant_id:
-            tenant = request.user.tenant
+            try:
+                tenant = request.user.tenant
+            except (Tenant.DoesNotExist, DatabaseError):
+                # Same reasoning as the anonymous branch below: a DB hiccup
+                # or a tenant_id pointing at a since-deleted row must not
+                # take the whole request down for every logged-in user.
+                _local.tenant = None
+                _local.is_super_admin = False
+                request.tenant = None
+                return
             _local.tenant = tenant
             _local.is_super_admin = bool(request.user.is_super_admin)
             request.tenant = tenant
