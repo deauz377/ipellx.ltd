@@ -7,6 +7,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
 from django.utils.text import slugify
+from django.views.decorators.csrf import csrf_exempt
 
 from .forms import UsernameChangeForm, StyledPasswordChangeForm, SignupForm
 from tenants.models import Tenant, User, SubscriptionPlan, SubscriptionPayment
@@ -14,6 +15,7 @@ from tenants.models import Tenant, User, SubscriptionPlan, SubscriptionPayment
 TRIAL_DAYS = 14
 
 
+@csrf_exempt
 def admin_run_migrations(request):
     """Ops endpoint: applies pending Django migrations against whichever
     database this deployment is already configured for. Exists because
