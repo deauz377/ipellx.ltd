@@ -33,6 +33,7 @@ urlpatterns = [
     path('payroll/', include('payroll.urls')),
     path('hr/', include('hr.urls')),
     path('accounting/', include('accounting.urls')),
+    path('budgeting/', include('budgeting.urls')),
     # Unauthenticated customer-facing payment page -- secured by the
     # unguessable token in the URL itself, not a login. See
     # core.middleware.EXEMPT_PREFIXES and sales/views_public.py.

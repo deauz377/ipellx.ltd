@@ -5,11 +5,22 @@ from tenants.models import TenantModel
 
 class Expense(TenantModel):
     CATEGORY_CHOICES = [
-        ('rent','Rent'),
-        ('salaries','Salaries'),
-        ('transport','Transport'),
-        ('utilities','Utilities'),
-        ('other','Other'),
+        ('rent', 'Rent'),
+        ('salaries', 'Salaries & Wages'),
+        ('transport', 'Transport'),
+        ('utilities', 'Utilities'),
+        # Added for the budgeting app, which needs one Expense category per
+        # budget category to compute "amount spent" -- 'utilities' is kept
+        # (existing rows still use it) alongside the two more specific
+        # options below for anyone who wants that level of detail going
+        # forward.
+        ('electricity', 'Electricity'),
+        ('water', 'Water'),
+        ('marketing', 'Marketing'),
+        ('gas_fuel', 'Gas/Fuel'),
+        ('maintenance', 'Maintenance'),
+        ('food_production', 'Food/Production'),
+        ('other', 'Other'),
     ]
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     description = models.TextField(blank=True)  # Placeholder for encryption

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Budgets - 14xlevel ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+    .budget-progress { height: 8px; border-radius: 5px; background: var(--border); overflow: hidden; min-width: 100px; }
+    .budget-progress-bar { height: 100%; border-radius: 5px; }
+    .budget-progress-bar.ok { background: var(--success); }
+    .budget-progress-bar.warn { background: var(--warning); }
+    .budget-progress-bar.danger { background: var(--error); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-piggy-bank"></i> All Budgets</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'budgeting:dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+        <a href="{% url 'budgeting:budget_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Budget</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th><th>Category</th><th>Period</th><th>Dates</th>
+                    <th>Budgeted</th><th>Spent</th><th>Used</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in budgets %}
+                <tr>
+                    <td><a href="{% url 'budgeting:budget_detail' b.pk %}">{{ b.name }}</a></td>
+                    <td>{{ b.display_category }}</td>
+                    <td>{{ b.get_period_display }}</td>
+                    <td>{{ b.start_date|date:"d M Y" }} &ndash; {{ b.end_date|date:"d M Y" }}</td>
+                    <td>KES {{ b.amount|floatformat:0 }}</td>
+                    <td>KES {{ b.spent_amount|floatformat:0 }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="budget-progress">
+                                <div class="budget-progress-bar {% if b.is_over_budget %}danger{% elif b.alert_level == 75 or b.alert_level == 90 %}warn{% else %}ok{% endif %}"
+                                     style="width: {{ b.usage_percent|floatformat:0 }}%; max-width:100%;"></div>
+                            </div>
+                            <span style="font-size:0.8rem; white-space:nowrap;">{{ b.usage_percent|floatformat:0 }}%</span>
+                        </div>
+                    </td>
+                    <td>{% if b.is_over_budget %}<span class="badge badge-danger">OVER</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">
+                    No budgets yet.
+                    {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+                    <a href="{% url 'budgeting:budget_create' %}">Create your first budget &rarr;</a>
+                    {% endif %}
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

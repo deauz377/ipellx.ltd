@@ -636,6 +636,13 @@
                 </a>
             </li>
             {% endif %}
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'ACCOUNTANT' %}
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'budgeting' %}active{% endif %}" href="{% url 'budgeting:dashboard' %}">
+                    <i class="bi bi-wallet2"></i> Budgeting
+                </a>
+            </li>
+            {% endif %}
             {% if user.role == 'OWNER' %}
             <li>
                 <a class="{% if request.resolver_match.url_name == 'savings_goal_list' or request.resolver_match.url_name == 'savings_goal_detail' %}active{% endif %}" href="{% url 'accounting:savings_goal_list' %}">

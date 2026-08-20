@@ -127,6 +127,7 @@ INSTALLED_APPS = [
     'payroll',
     'hr',
     'accounting',
+    'budgeting',
     'guardian',  # For object-level permissions
     'rest_framework',  # For API
     'rest_framework_simplejwt',  # For JWT
@@ -229,10 +230,21 @@ if EMAIL_HOST:
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
     EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+    # Vercel serverless functions have a hard execution-time limit; a stalled
+    # SMTP connection (Gmail or otherwise) must not be allowed to hang past
+    # it with no timeout at all, which is smtplib's default.
+    EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@14xlevel-erp.local')
+
+# Minimum time between "resend verification email" sends for the same
+# account -- see core.views.resend_verification(). DB-backed (User.verification_sent_at),
+# not cache-backed: this deployment has no shared cache (Vercel serverless
+# has no CACHES config), so a cache-based cooldown wouldn't reliably persist
+# between invocations.
+EMAIL_VERIFICATION_RESEND_COOLDOWN = int(os.environ.get('EMAIL_VERIFICATION_RESEND_COOLDOWN', '60'))
 
 # WhatsApp Business Cloud API (Meta), used to alert suppliers when a
 # purchase order is sent to them. Needs real setup only the business

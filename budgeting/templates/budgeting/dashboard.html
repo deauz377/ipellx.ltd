@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Budgeting - 14xlevel ERP{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .kpi-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; align-items: flex-start; }
+    .kpi-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-right: 14px; flex-shrink: 0; }
+    .kpi-icon.primary { background-color: #E8F1F8; color: var(--primary); }
+    .kpi-icon.success { background-color: #D1FAE5; color: var(--success); }
+    .kpi-icon.warning { background-color: #FEF3C7; color: var(--warning); }
+    .kpi-icon.error { background-color: #FEE2E2; color: var(--error); }
+    .kpi-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+    .kpi-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .period-switch { display: flex; gap: 6px; flex-wrap: wrap; }
+    .period-switch a {
+        padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+        text-decoration: none; border: 1px solid var(--border); color: var(--text-secondary);
+    }
+    .period-switch a.active { background-color: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
+
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .chart-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .chart-card h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+    .chart-container { position: relative; height: 240px; }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .table-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .table-body { overflow-x: auto; padding: 0; }
+
+    .alert-feed { display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; }
+    .alert-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; }
+    .alert-row.warning { background: rgba(245,158,11,0.1); color: #92400E; }
+    .alert-row.error { background: rgba(239,68,68,0.1); color: #991B1B; }
+
+    .budget-progress { height: 10px; border-radius: 6px; background: var(--border); overflow: hidden; min-width: 120px; }
+    .budget-progress-bar { height: 100%; border-radius: 6px; }
+    .budget-progress-bar.ok { background: var(--success); }
+    .budget-progress-bar.warn { background: var(--warning); }
+    .budget-progress-bar.danger { background: var(--error); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-piggy-bank"></i> Budgeting</h1>
+    <div class="period-switch">
+        <a href="?period=daily" class="{% if period == 'daily' %}active{% endif %}">Daily</a>
+        <a href="?period=weekly" class="{% if period == 'weekly' %}active{% endif %}">Weekly</a>
+        <a href="?period=monthly" class="{% if period == 'monthly' %}active{% endif %}">Monthly</a>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <p class="text-muted mb-0">{{ period_label }} budget &middot; {{ start_date|date:"d M Y" }} &ndash; {{ end_date|date:"d M Y" }}</p>
+    <div class="d-flex gap-2">
+        <a href="{% url 'budgeting:budget_report' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+        {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+        <a href="{% url 'budgeting:budget_create' %}?period={{ period }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New Budget</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if alerts %}
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-bell"></i> Budget Alerts</h3></div>
+    <div class="alert-feed">
+        {% for b in alerts %}
+        <div class="alert-row {% if b.alert_level == 'over' or b.alert_level == 100 %}error{% else %}warning{% endif %}">
+            <i class="bi bi-exclamation-triangle"></i>
+            <a href="{% url 'budgeting:budget_detail' b.pk %}">{{ b.name }}</a> ({{ b.display_category }})
+            {% if b.alert_level == 'over' %}
+                is <strong>OVER BUDGET</strong> &mdash; KES {{ b.spent_amount|floatformat:0 }} spent of KES {{ b.amount|floatformat:0 }}
+            {% else %}
+                has used <strong>{{ b.usage_percent|floatformat:0 }}%</strong> of its budget
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-wallet2"></i></div>
+        <div><div class="kpi-label">{{ period_label }} Budget</div><div class="kpi-value">KES {{ total_budgeted|floatformat:0 }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon warning"><i class="bi bi-cash-stack"></i></div>
+        <div><div class="kpi-label">{{ period_label }} Spending</div><div class="kpi-value">KES {{ total_spent|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ usage_percent|floatformat:0 }}% used</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon {% if total_remaining < 0 %}error{% else %}success{% endif %}"><i class="bi bi-piggy-bank"></i></div>
+        <div><div class="kpi-label">{{ period_label }} Balance</div><div class="kpi-value">KES {{ total_remaining|floatformat:0 }}</div>
+        {% if total_remaining < 0 %}<div class="kpi-sub text-danger">Over budget</div>{% endif %}</div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-tags"></i></div>
+        <div><div class="kpi-label">Top Spending Category</div>
+        {% if top_category %}
+        <div class="kpi-value" style="font-size:1.1rem;">{{ top_category.label }}</div>
+        <div class="kpi-sub">KES {{ top_category.spent|floatformat:0 }}</div>
+        {% else %}<div class="kpi-value">&mdash;</div><div class="kpi-sub">No spending yet</div>{% endif %}
+        </div></div>
+
+    <div class="kpi-card"><div class="kpi-icon {% if over_budget %}error{% else %}success{% endif %}"><i class="bi bi-exclamation-diamond"></i></div>
+        <div><div class="kpi-label">Over-Budget Categories</div><div class="kpi-value">{{ over_budget|length }}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-calendar-event"></i></div>
+        <div><div class="kpi-label">{% if period == 'daily' %}vs Yesterday{% elif period == 'weekly' %}vs Last Week{% else %}vs Last Month{% endif %}</div>
+        <div class="kpi-value">KES {{ prev_spent|floatformat:0 }}</div>
+        <div class="kpi-sub">Previous period spending</div></div></div>
+    {% if highest_day %}
+    <div class="kpi-card"><div class="kpi-icon warning"><i class="bi bi-graph-up-arrow"></i></div>
+        <div><div class="kpi-label">Highest Spending Day</div><div class="kpi-value" style="font-size:1.1rem;">{{ highest_day.0|date:"d M" }}</div>
+        <div class="kpi-sub">KES {{ highest_day.1|floatformat:0 }}</div></div></div>
+    {% endif %}
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-clock-history"></i></div>
+        <div><div class="kpi-label">Upcoming Planned Budgets</div><div class="kpi-value">{{ upcoming|length }}</div></div></div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-card">
+        <h3><i class="bi bi-bar-chart"></i> Budget vs Actual</h3>
+        {% if budgets %}
+        <div class="chart-container"><canvas id="budgetVsActualChart"></canvas></div>
+        {% else %}<p class="text-muted mb-0">No budgets set for this period yet.</p>{% endif %}
+    </div>
+    <div class="chart-card">
+        <h3><i class="bi bi-pie-chart"></i> Spending by Category</h3>
+        {% if category_rows %}
+        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+        {% else %}<p class="text-muted mb-0">No spending recorded in this period yet.</p>{% endif %}
+    </div>
+    <div class="chart-card">
+        <h3><i class="bi bi-graph-up"></i> Daily Spending Trend</h3>
+        {% if trend %}
+        <div class="chart-container"><canvas id="trendChart"></canvas></div>
+        {% else %}<p class="text-muted mb-0">No spending recorded yet.</p>{% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-list-check"></i> {{ period_label }} Budgets</h3>
+        <a href="{% url 'budgeting:budget_list' %}" style="font-size: 0.85rem; color: var(--primary);">View All Budgets &rarr;</a>
+    </div>
+    <div class="table-body">
+        {% if budgets %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th>Name</th><th>Category</th><th>Budgeted</th><th>Spent</th><th>Remaining</th><th>Used</th><th></th>
+            </tr></thead>
+            <tbody>
+                {% for b in budgets %}
+                <tr>
+                    <td><a href="{% url 'budgeting:budget_detail' b.pk %}">{{ b.name }}</a></td>
+                    <td>{{ b.display_category }}</td>
+                    <td>KES {{ b.amount|floatformat:0 }}</td>
+                    <td>KES {{ b.spent_amount|floatformat:0 }}</td>
+                    <td class="{% if b.remaining_amount < 0 %}text-danger fw-bold{% endif %}">KES {{ b.remaining_amount|floatformat:0 }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="budget-progress">
+                                <div class="budget-progress-bar {% if b.is_over_budget %}danger{% elif b.alert_level == 75 or b.alert_level == 90 %}warn{% else %}ok{% endif %}"
+                                     style="width: {{ b.usage_percent|floatformat:0 }}%; max-width:100%;"></div>
+                            </div>
+                            <span style="font-size:0.8rem; white-space:nowrap;">{{ b.usage_percent|floatformat:0 }}%</span>
+                        </div>
+                    </td>
+                    <td>{% if b.is_over_budget %}<span class="badge badge-danger">OVER BUDGET</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted mb-0" style="padding: 20px;">
+            No {{ period_label|lower }} budgets set yet.
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'budgeting:budget_create' %}?period={{ period }}">Create one now &rarr;</a>
+            {% endif %}
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if budgets %}
+new Chart(document.getElementById('budgetVsActualChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ budget_labels_json|safe }},
+        datasets: [
+            { label: 'Budgeted', data: {{ budget_amount_json|safe }}, backgroundColor: 'rgba(44,95,141,0.5)' },
+            { label: 'Spent', data: {{ budget_spent_json|safe }}, backgroundColor: 'rgba(239,68,68,0.7)' },
+        ],
+    },
+    options: { scales: { y: { beginAtZero: true } } },
+});
+{% endif %}
+{% if category_rows %}
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ category_labels_json|safe }},
+        datasets: [{ data: {{ category_data_json|safe }}, backgroundColor: ['#2C5F8D','#F59E0B','#10B981','#EF4444','#6B7280','#3D7BA8'] }],
+    },
+    options: { plugins: { legend: { position: 'bottom' } } },
+});
+{% endif %}
+{% if trend %}
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels_json|safe }},
+        datasets: [{ label: 'Spending', data: {{ trend_data_json|safe }}, borderColor: '#2C5F8D', backgroundColor: 'rgba(44,95,141,0.1)', fill: true, tension: 0.3 }],
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+});
+{% endif %}
+</script>
+{% endblock %}
