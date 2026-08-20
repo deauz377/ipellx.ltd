@@ -341,6 +341,47 @@
         .auth-links a:hover {
             text-decoration: underline;
         }
+
+        /* Show/hide password control. The wrapper and button are injected by
+           the script at the end of this file onto every password field, so
+           each auth template gets this without markup of its own. */
+        .pw-wrap {
+            position: relative;
+            /* The input normally carries this margin; the wrapper takes it
+               over so the button can span exactly the input's height. */
+            margin-bottom: 16px;
+        }
+
+        .pw-wrap input {
+            margin-bottom: 0 !important;
+            padding-right: 44px !important;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .pw-toggle:hover { color: var(--text-primary); }
+
+        .pw-toggle:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: -2px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -403,6 +444,44 @@
                     localStorage.setItem('theme', 'dark');
                 }
                 updateIcon();
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            // Adds a show/hide control to every password field on the page.
+            // Done here rather than per-template so login, signup and the
+            // password-reset form share one implementation.
+            document.querySelectorAll('input[type="password"]').forEach(function (input) {
+                var wrap = document.createElement('div');
+                wrap.className = 'pw-wrap';
+                input.parentNode.insertBefore(wrap, input);
+                wrap.appendChild(input);
+
+                var btn = document.createElement('button');
+                // type="button" matters: a button inside a form with no type
+                // defaults to submit, so every reveal would post the form.
+                btn.type = 'button';
+                btn.className = 'pw-toggle';
+                btn.setAttribute('aria-pressed', 'false');
+                btn.setAttribute('aria-label', 'Show password');
+                btn.innerHTML = '<i class="bi bi-eye"></i>';
+                wrap.appendChild(btn);
+
+                btn.addEventListener('click', function () {
+                    var revealing = input.type === 'password';
+                    // The stylesheet styles input[type="text"] identically to
+                    // input[type="password"], so swapping the type does not
+                    // change how the field looks.
+                    input.type = revealing ? 'text' : 'password';
+                    btn.innerHTML = revealing
+                        ? '<i class="bi bi-eye-slash"></i>'
+                        : '<i class="bi bi-eye"></i>';
+                    btn.setAttribute('aria-label', revealing ? 'Hide password' : 'Show password');
+                    btn.setAttribute('aria-pressed', String(revealing));
+                    input.focus();
+                });
             });
         })();
     </script>
