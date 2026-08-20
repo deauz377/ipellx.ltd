@@ -239,6 +239,17 @@ else:
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@14xlevel-erp.local')
 
+# Whether a newly signed-up account must click an emailed link before it can
+# sign in. Defaults to OFF: with no SMTP configured the verification mail goes
+# to the console backend, i.e. nowhere a customer can see, which would strand
+# every new signup with an account they can never log into. Turn this on (set
+# REQUIRE_EMAIL_VERIFICATION=true) once EMAIL_HOST and its credentials are set.
+#
+# The flag is read at login time as well as at signup, so flipping it off also
+# un-blocks accounts that were created while it was on, and flipping it on only
+# affects accounts created from then on.
+REQUIRE_EMAIL_VERIFICATION = env_bool('REQUIRE_EMAIL_VERIFICATION', False)
+
 # Minimum time between "resend verification email" sends for the same
 # account -- see core.views.resend_verification(). DB-backed (User.verification_sent_at),
 # not cache-backed: this deployment has no shared cache (Vercel serverless

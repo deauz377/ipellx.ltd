@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
@@ -80,8 +80,21 @@ def signup(request):
                     password=data['password1'],
                     tenant=tenant,
                     role=User.Role.OWNER,
-                    email_verified=False,
+                    # Only start unverified when verification is actually
+                    # switched on -- otherwise the account would be blocked
+                    # by a check nothing can ever satisfy.
+                    email_verified=not settings.REQUIRE_EMAIL_VERIFICATION,
                 )
+
+            if not settings.REQUIRE_EMAIL_VERIFICATION:
+                # Verification paused: sign them straight in, the behaviour
+                # this flow had before verification existed.
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                messages.success(
+                    request,
+                    f"Welcome to {tenant.name}! Your {TRIAL_DAYS}-day free trial has started.",
+                )
+                return redirect('dashboard_overview')
 
             # No auto-login here: the account can't sign in until the email
             # is verified (see core.forms.RoleAwareLoginForm.confirm_login_allowed),

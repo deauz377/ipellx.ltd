@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.admin.forms import AdminAuthenticationForm
 
 
@@ -12,7 +13,7 @@ class VerifiedAdminAuthenticationForm(AdminAuthenticationForm):
 
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
-        if not user.email_verified:
+        if settings.REQUIRE_EMAIL_VERIFICATION and not user.email_verified:
             raise forms.ValidationError(
                 "Please verify your email address before signing in.",
                 code='email_unverified',

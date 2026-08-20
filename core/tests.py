@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -67,6 +67,7 @@ class AnonymousAccessDeniedTests(TestCase):
         self.assert_login_required(reverse('sales:product_profit_report'))
 
 
+@override_settings(REQUIRE_EMAIL_VERIFICATION=True)
 class EmailVerificationLifecycleTests(TestCase):
     """Part 19 #10-17."""
 
@@ -187,6 +188,7 @@ class EmailVerificationLifecycleTests(TestCase):
         self.assertFalse(User.objects.filter(username='noemailowner').exists())
 
 
+@override_settings(REQUIRE_EMAIL_VERIFICATION=True)
 class SignupFlowTests(TestCase):
     def test_signup_does_not_auto_login_and_creates_unverified_owner(self):
         mail.outbox = []
@@ -430,3 +432,50 @@ class CronAuthTests(TestCase):
             response = self.client.get(reverse('admin_run_migrations'))
             self.assertEqual(response.status_code, 403)
             self.assertNotIn(self.TEST_SECRET, response.content.decode())
+
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False)
+class VerificationPausedTests(TestCase):
+    """Default configuration: verification switched off, because with no SMTP
+    configured the mail goes to the console backend and a customer would be
+    left with an account they can never log into."""
+
+    def test_signup_logs_straight_in_and_sends_no_email(self):
+        mail.outbox = []
+        response = self.client.post(reverse('core:signup'), {
+            'business_name': 'Paused Verification Biz', 'username': 'pausedowner',
+            'email': 'paused@example.com', 'phone': '',
+            'password1': 'PausedPass123!', 'password2': 'PausedPass123!',
+        }, follow=True)
+        self.assertTemplateUsed(response, 'dashboard/overview.html')
+        self.assertEqual(len(mail.outbox), 0)
+
+        user = User.objects.get(username='pausedowner')
+        self.assertTrue(user.email_verified)
+        self.assertEqual(user.role, User.Role.OWNER)
+        self.assertIsNotNone(user.tenant)
+
+    def test_new_account_can_log_in_immediately(self):
+        self.client.post(reverse('core:signup'), {
+            'business_name': 'Paused Login Biz', 'username': 'pausedlogin',
+            'email': 'pausedlogin@example.com', 'phone': '',
+            'password1': 'PausedPass123!', 'password2': 'PausedPass123!',
+        })
+        self.client.logout()
+        response = self.client.post(reverse('core:login'), {
+            'username': 'pausedlogin', 'password': 'PausedPass123!', 'role': User.Role.OWNER,
+        }, follow=True)
+        self.assertTemplateUsed(response, 'dashboard/overview.html')
+
+    def test_account_left_unverified_from_before_is_not_blocked(self):
+        """Turning the flag off must also un-block accounts created while it
+        was on, otherwise pausing would strand exactly the users it is meant
+        to rescue."""
+        tenant, user = create_tenant_and_owner('paused-unblock-test', username='strandedowner')
+        user.email_verified = False
+        user.save(update_fields=['email_verified'])
+
+        response = self.client.post(reverse('core:login'), {
+            'username': 'strandedowner', 'password': TEST_PASSWORD, 'role': User.Role.OWNER,
+        }, follow=True)
+        self.assertTemplateUsed(response, 'dashboard/overview.html')

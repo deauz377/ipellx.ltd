@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from tenants.models import Tenant
@@ -47,7 +48,7 @@ class RoleAwareLoginForm(AuthenticationForm):
         # before user_cache is ever set, so a custom message here would never
         # be reached). super() first preserves Django's own is_active check.
         super().confirm_login_allowed(user)
-        if not user.email_verified:
+        if settings.REQUIRE_EMAIL_VERIFICATION and not user.email_verified:
             raise forms.ValidationError(
                 "Please verify your email address before signing in.",
                 code='email_unverified',
