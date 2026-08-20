@@ -292,7 +292,13 @@ AT_SENDER_ID = os.environ.get('AT_SENDER_ID', '')
 # Shared secret Vercel Cron sends as `Authorization: Bearer <value>` when it
 # calls /cron/ endpoints -- without this set, those endpoints refuse every
 # request rather than running the job for an unauthenticated caller.
-CRON_SECRET = os.environ.get('CRON_SECRET', '')
+# .strip() because a value pasted into a hosting dashboard very easily picks
+# up a trailing newline or space. Vercel rejects the whole build if this
+# variable has surrounding whitespace (it injects the value as an
+# Authorization header for cron requests, and headers cannot contain it), and
+# a stray space would otherwise also make the Bearer comparison below fail in
+# a way that looks like a wrong secret rather than a formatting problem.
+CRON_SECRET = os.environ.get('CRON_SECRET', '').strip()
 
 
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
