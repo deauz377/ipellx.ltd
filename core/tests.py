@@ -355,3 +355,78 @@ class SessionSecurityTests(TestCase):
 
         self.assertEqual(device1.get(reverse('dashboard_search')).status_code, 302)
         self.assertEqual(device2.get(reverse('dashboard_search')).status_code, 302)
+
+
+class CronAuthTests(TestCase):
+    """Authentication for the Vercel Cron endpoints (core.cron_auth).
+
+    The secret used here is a throwaway test literal -- the real one only
+    ever exists in the hosting platform's environment variables.
+    """
+
+    TEST_SECRET = 'test-only-cron-secret'
+
+    def setUp(self):
+        from django.test import RequestFactory
+        self.factory = RequestFactory()
+
+    def _request(self, authorization=None):
+        headers = {} if authorization is None else {'Authorization': authorization}
+        return self.factory.get('/cron/send-payment-reminders/', headers=headers)
+
+    def _check(self, authorization=None):
+        from .cron_auth import cron_request_is_authorised
+        return cron_request_is_authorised(self._request(authorization))
+
+    def test_correct_secret_is_accepted(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertTrue(self._check(f'Bearer {self.TEST_SECRET}'))
+
+    def test_wrong_secret_is_rejected(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertFalse(self._check('Bearer not-the-right-secret'))
+
+    def test_missing_header_is_rejected(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertFalse(self._check(None))
+
+    def test_bare_secret_without_bearer_prefix_is_rejected(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertFalse(self._check(self.TEST_SECRET))
+
+    def test_unset_secret_fails_closed(self):
+        """A deployment that forgot the variable must refuse every caller,
+        not accept them all."""
+        with self.settings(CRON_SECRET=''):
+            self.assertFalse(self._check('Bearer '))
+            self.assertFalse(self._check(None))
+            self.assertFalse(self._check('Bearer anything'))
+
+    def test_whitespace_padded_header_still_authenticates(self):
+        """Intermediaries can pad a header value; that must not look like a
+        wrong secret. This is robustness, not a substitute for storing the
+        variable without whitespace -- Vercel rejects the build outright
+        when the stored value has any."""
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertTrue(self._check(f'  Bearer {self.TEST_SECRET}  '))
+
+    def test_non_ascii_header_is_rejected_without_raising(self):
+        """hmac.compare_digest raises TypeError on non-ASCII str, which a
+        caller could otherwise use to turn a failed check into a 500."""
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            self.assertFalse(self._check('Bearer ünïcödé'))
+
+    def test_endpoint_refuses_and_never_echoes_the_secret(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            response = self.client.get(
+                reverse('cron_send_payment_reminders'),
+                headers={'Authorization': 'Bearer wrong'},
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertNotIn(self.TEST_SECRET, response.content.decode())
+
+    def test_migrate_endpoint_refuses_unauthenticated_callers(self):
+        with self.settings(CRON_SECRET=self.TEST_SECRET):
+            response = self.client.get(reverse('admin_run_migrations'))
+            self.assertEqual(response.status_code, 403)
+            self.assertNotIn(self.TEST_SECRET, response.content.decode())

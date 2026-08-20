@@ -809,8 +809,8 @@ def cron_send_payment_reminders(request):
     a logged-in user here, so this is exempted from login in
     EXEMPT_PREFIXES, not from this check -- an unset/wrong secret must
     still refuse the request."""
-    expected = f'Bearer {settings.CRON_SECRET}'
-    if not settings.CRON_SECRET or request.headers.get('Authorization') != expected:
+    from core.cron_auth import cron_request_is_authorised
+    if not cron_request_is_authorised(request):
         return HttpResponseForbidden('Invalid or missing cron secret')
 
     from django.core.management import call_command

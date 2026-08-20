@@ -12,6 +12,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 
+from .cron_auth import cron_request_is_authorised
 from .emails import send_verification_email
 from .forms import UsernameChangeForm, StyledPasswordChangeForm, SignupForm, ResendVerificationForm
 from .tokens import email_verification_token
@@ -32,8 +33,7 @@ def admin_run_migrations(request):
     endpoint) via a Bearer header -- migrate is idempotent, so repeat
     calls are harmless, but a leaked secret would let someone re-trigger
     it at will, which is why this isn't left unauthenticated."""
-    expected = f'Bearer {settings.CRON_SECRET}'
-    if not settings.CRON_SECRET or request.headers.get('Authorization') != expected:
+    if not cron_request_is_authorised(request):
         return HttpResponseForbidden('Invalid or missing secret')
 
     from io import StringIO
