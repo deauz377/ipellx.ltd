@@ -57,6 +57,19 @@ class User(AbstractUser):
     is_super_admin = models.BooleanField(default=False)
     encrypted_ssn = models.CharField(max_length=11, blank=True, null=True)  # Placeholder for encryption
 
+    # Defaults to True so every existing account-creation path other than
+    # public signup -- Owner-created team members (often with no email at
+    # all, see core.forms.TeamMemberCreationForm), createsuperuser, this
+    # migration's backfill of existing rows -- is unaffected. Only
+    # core.views.signup() explicitly sets this False for the new account it
+    # creates, gating it behind core.tokens.EmailVerificationTokenGenerator.
+    email_verified = models.BooleanField(default=True)
+    # Backs the resend-verification cooldown (core.views.resend_verification).
+    # DB-backed rather than cache-backed: this deployment has no shared cache
+    # (Vercel serverless, no CACHES config), so a cache-based cooldown
+    # wouldn't reliably persist between invocations.
+    verification_sent_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         permissions = [
             ('view_tenant_data', 'Can view tenant data'),

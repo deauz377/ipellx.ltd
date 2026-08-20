@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from tenants.models import Tenant
 
@@ -20,6 +20,10 @@ class StyledPasswordChangeForm(PasswordChangeForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
+        # PasswordChangeForm doesn't set this by default (unlike
+        # UserCreationForm) -- account_settings.html already renders
+        # new_password1.help_text, so this is what makes that show anything.
+        self.fields['new_password1'].help_text = password_validation.password_validators_help_text_html()
 
 
 class RoleAwareLoginForm(AuthenticationForm):
@@ -32,6 +36,22 @@ class RoleAwareLoginForm(AuthenticationForm):
     error instead of silently granting/denying access.
     """
     role = forms.ChoiceField(choices=User.Role.choices)
+
+    def confirm_login_allowed(self, user):
+        # Runs inside AuthenticationForm.clean(), right after username/password
+        # verify successfully and before the role check below -- this is
+        # what lets a correct-password-but-unverified login show a distinct,
+        # actionable message instead of Django's generic "invalid login"
+        # (which is what happens if verification is gated via is_active
+        # instead: ModelBackend filters inactive users out of authenticate()
+        # before user_cache is ever set, so a custom message here would never
+        # be reached). super() first preserves Django's own is_active check.
+        super().confirm_login_allowed(user)
+        if not user.email_verified:
+            raise forms.ValidationError(
+                "Please verify your email address before signing in.",
+                code='email_unverified',
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -88,12 +108,23 @@ class TeamMemberCreationForm(forms.Form):
         return cleaned_data
 
 
+class ResendVerificationForm(forms.Form):
+    """Deliberately has nothing to validate beyond 'is this a well-formed
+    email' -- core.views.resend_verification() looks the address up itself
+    and always responds the same way whether or not an account exists, so
+    there is nothing here for a clean_email() to safely report back."""
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@example.com'}))
+
+
 class SignupForm(forms.Form):
     """Public signup: creates a new business (Tenant) plus its first
     account, which is always the Owner."""
     business_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. RealKuku'}))
     username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    # Required (unlike core.views.add_team_member's internal team accounts,
+    # which can go without one) -- signup's new email-verification step has
+    # nowhere to send a link without it.
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
     phone = forms.CharField(max_length=30, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
     password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))

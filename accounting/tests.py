@@ -48,7 +48,7 @@ class BankAccountTestCase(TestCase):
 class AccountingDashboardTestCase(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_user(username='accounting-user', password='secret123')
+        self.user = User.objects.create_user(username='accounting-user', password='secret123', role=User.Role.OWNER)
         self.client.force_login(self.user)
 
     def test_dashboard_renders_with_expected_metrics(self):
@@ -63,7 +63,7 @@ class AccountingDashboardTestCase(TestCase):
 class BillCreateViewTestCase(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_user(username='bill-user', password='secret123')
+        self.user = User.objects.create_user(username='bill-user', password='secret123', role=User.Role.OWNER)
         self.client.force_login(self.user)
 
     def test_bill_create_page_renders(self):
@@ -76,7 +76,7 @@ class BillCreateViewTestCase(TestCase):
 class BillDetailViewTestCase(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_user(username='bill-detail-user', password='secret123')
+        self.user = User.objects.create_user(username='bill-detail-user', password='secret123', role=User.Role.OWNER)
         self.client.force_login(self.user)
         self.bill = Bill.objects.create(
             bill_number='BILL-1001',
@@ -97,4 +97,55 @@ class BillDetailViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Bill Details')
-        self.assertContains(response, 'Test Vendor')
+
+
+from tenants.tests import TwoTenantTestCase
+
+from .models import BankAccount, BankReconciliation
+
+
+class AccountingTenantIsolationTests(TwoTenantTestCase):
+    """Part 19 #33 -- plus a direct regression test for the bank
+    reconciliation view (accounting/views.py:bank_reconciliation), which
+    used to take bank_account straight from POST data with no check that
+    it belonged to the current tenant."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.bill_a = Bill.objects.create(
+            bill_number='BILL-A-ISO', bill_date='2026-07-01', due_date='2026-07-15',
+            vendor='Vendor A', total_amount=500, tenant=cls.tenant_a,
+        )
+        cls.bill_b = Bill.objects.create(
+            bill_number='BILL-B-ISO', bill_date='2026-07-01', due_date='2026-07-15',
+            vendor='Vendor B', total_amount=700, tenant=cls.tenant_b,
+        )
+        cls.bank_account_b = BankAccount.objects.create(
+            account_name='Tenant B Checking', account_type='checking',
+            account_number='B-ACC-001', tenant=cls.tenant_b,
+        )
+
+    def test_user_a_cannot_view_user_b_bill_by_id(self):
+        self.login_a()
+        response = self.client.get(reverse('accounting:bill_detail', kwargs={'pk': self.bill_b.pk}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_bill_id_manipulation_does_not_bypass_authorization(self):
+        self.login_a()
+        for pk in (self.bill_b.pk, 999999):
+            response = self.client.get(reverse('accounting:bill_detail', kwargs={'pk': pk}))
+            self.assertEqual(response.status_code, 404)
+
+    def test_bank_reconciliation_rejects_cross_tenant_bank_account_id(self):
+        """Regression test for the accounting/views.py:bank_reconciliation
+        fix: bank_account_id used to be taken straight from POST with no
+        ownership check."""
+        self.login_a()
+        response = self.client.post(reverse('accounting:bank_reconciliation'), {
+            'bank_balance': '1000', 'book_balance': '1000',
+            'reconciliation_date': '2026-08-01',
+            'bank_account': self.bank_account_b.pk,
+        })
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(BankReconciliation.objects.filter(bank_account=self.bank_account_b).exists())

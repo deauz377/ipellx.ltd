@@ -14,6 +14,12 @@
         </div>
     {% endif %}
 
+    {% for error in form.non_field_errors.as_data %}
+        {% if error.code == 'email_unverified' %}
+            <div class="auth-links"><a href="{% url 'core:resend_verification' %}">Resend verification email</a></div>
+        {% endif %}
+    {% endfor %}
+
     <form method="post">
         {% csrf_token %}
         <label for="id_username">Username</label>

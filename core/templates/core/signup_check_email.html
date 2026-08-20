@@ -1,0 +1,16 @@
+{% extends 'core/auth_base.html' %}
+
+{% block title %}Check your email - IPELLX{% endblock %}
+{% block auth_heading %}Check your email{% endblock %}
+
+{% block auth_content %}
+    <p class="auth-subtext">
+        We've sent a verification link to the email address you signed up with.
+        Click it to activate your account, then sign in.
+    </p>
+
+    <div class="auth-links">
+        <a href="{% url 'core:resend_verification' %}">Didn't get it? Resend verification email</a>
+        <br><a href="{% url 'core:login' %}">Back to sign in</a>
+    </div>
+{% endblock %}

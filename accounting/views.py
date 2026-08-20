@@ -345,10 +345,14 @@ def bank_reconciliation(request):
         bank_balance = Decimal(request.POST.get('bank_balance', 0))
         book_balance = Decimal(request.POST.get('book_balance', 0))
         difference = bank_balance - book_balance
-        
+
+        # bank_account comes straight from POST data -- must be verified as
+        # this tenant's own BankAccount before use, not just accepted as-is.
+        bank_account = get_object_or_404(BankAccount, pk=request.POST.get('bank_account'), tenant=tenant)
+
         reconciliation = BankReconciliation.objects.create(
             tenant=tenant,
-            bank_account_id=request.POST.get('bank_account'),
+            bank_account=bank_account,
             reconciliation_date=datetime.strptime(request.POST.get('reconciliation_date'), '%Y-%m-%d').date(),
             bank_balance=bank_balance,
             book_balance=book_balance,

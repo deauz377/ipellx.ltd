@@ -17,6 +17,14 @@ class ProductForm(forms.ModelForm):
             'supplier': forms.Select(attrs={'class': 'form-select'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Meta.fields would otherwise build this dropdown's queryset once, at
+        # class-definition time -- before any request/tenant context exists,
+        # permanently baking in every tenant's suppliers. Re-set it here so it
+        # runs per-request, after TenantMiddleware has set the current tenant.
+        self.fields['supplier'].queryset = Supplier.objects.all()
+
 class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier

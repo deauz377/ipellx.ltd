@@ -1,0 +1,23 @@
+{% extends 'core/auth_base.html' %}
+
+{% block title %}Resend verification email - IPELLX{% endblock %}
+{% block auth_heading %}Resend verification email{% endblock %}
+
+{% block auth_content %}
+    <p class="auth-subtext">
+        Enter the email address you signed up with and, if it needs verifying, we'll send a new link.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="id_email">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="auth-errors">{{ form.email.errors|join:", " }}</div>{% endif %}
+
+        <button type="submit" class="auth-btn">Resend verification email</button>
+    </form>
+
+    <div class="auth-links">
+        <a href="{% url 'core:login' %}">Back to sign in</a>
+    </div>
+{% endblock %}

@@ -1,15 +1,20 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash, login
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 
-from .forms import UsernameChangeForm, StyledPasswordChangeForm, SignupForm
+from .emails import send_verification_email
+from .forms import UsernameChangeForm, StyledPasswordChangeForm, SignupForm, ResendVerificationForm
+from .tokens import email_verification_token
 from tenants.models import Tenant, User, SubscriptionPlan, SubscriptionPayment
 
 TRIAL_DAYS = 14
@@ -57,29 +62,95 @@ def signup(request):
                 suffix += 1
                 subdomain = f"{base_subdomain}-{suffix}"
 
-            tenant = Tenant.objects.create(
-                name=data['business_name'],
-                subdomain=subdomain,
-                phone=data['phone'],
-                paid_until=timezone.now() + timedelta(days=TRIAL_DAYS),
-                on_trial=True,
-            )
-            user = User.objects.create_user(
-                username=data['username'],
-                email=data['email'],
-                password=data['password1'],
-                tenant=tenant,
-                role=User.Role.OWNER,
-            )
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            messages.success(
-                request,
-                f"Welcome to {tenant.name}! Your {TRIAL_DAYS}-day free trial has started.",
-            )
-            return redirect('dashboard_overview')
+            # Tenant and its owning User must exist together or not at all --
+            # without this, a failure between the two calls (e.g. a
+            # subdomain race losing to unique=True) would leave an orphaned
+            # Tenant with no owner.
+            with transaction.atomic():
+                tenant = Tenant.objects.create(
+                    name=data['business_name'],
+                    subdomain=subdomain,
+                    phone=data['phone'],
+                    paid_until=timezone.now() + timedelta(days=TRIAL_DAYS),
+                    on_trial=True,
+                )
+                user = User.objects.create_user(
+                    username=data['username'],
+                    email=data['email'],
+                    password=data['password1'],
+                    tenant=tenant,
+                    role=User.Role.OWNER,
+                    email_verified=False,
+                )
+
+            # No auto-login here: the account can't sign in until the email
+            # is verified (see core.forms.RoleAwareLoginForm.confirm_login_allowed),
+            # so logging them in immediately would just be undone on their
+            # very next request.
+            if not send_verification_email(user, request):
+                messages.warning(
+                    request,
+                    "Your account was created, but we couldn't send the verification "
+                    "email right now. Use \"Resend verification email\" once you're "
+                    "ready to try again.",
+                )
+            return redirect('core:signup_check_email')
     else:
         form = SignupForm()
     return render(request, 'core/signup.html', {'form': form, 'trial_days': TRIAL_DAYS})
+
+
+def signup_check_email(request):
+    return render(request, 'core/signup_check_email.html')
+
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and email_verification_token.check_token(user, token):
+        user.email_verified = True
+        user.save(update_fields=['email_verified'])
+        messages.success(request, "Your email is verified. You can now sign in.")
+        return redirect('core:login')
+
+    messages.error(
+        request,
+        "That verification link is invalid or has expired. Request a new one below.",
+    )
+    return redirect('core:resend_verification')
+
+
+def resend_verification(request):
+    """Deliberately gives the same response whether the email exists,
+    belongs to an already-verified account, or was just sent one -- so this
+    can't be used to probe which email addresses have accounts here (same
+    anti-enumeration idiom core.urls's PasswordResetView already uses)."""
+    if request.method == 'POST':
+        form = ResendVerificationForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            user = User.objects.filter(email__iexact=email, email_verified=False).first()
+            if user is not None:
+                cooldown = timedelta(seconds=settings.EMAIL_VERIFICATION_RESEND_COOLDOWN)
+                recently_sent = (
+                    user.verification_sent_at is not None
+                    and timezone.now() - user.verification_sent_at < cooldown
+                )
+                if not recently_sent:
+                    send_verification_email(user, request)
+            messages.success(
+                request,
+                "If an account exists for that email and isn't verified yet, "
+                "we've sent a new verification link.",
+            )
+            return redirect('core:resend_verification')
+    else:
+        form = ResendVerificationForm()
+    return render(request, 'core/resend_verification.html', {'form': form})
 
 
 @login_required

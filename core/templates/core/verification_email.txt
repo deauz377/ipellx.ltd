@@ -1,0 +1,7 @@
+Welcome to iPellX.
+
+Please verify your email address to activate your account, {{ user.username }}.
+
+Verify my email: {{ verify_url }}
+
+If you did not create this account, you can safely ignore this email.

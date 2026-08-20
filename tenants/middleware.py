@@ -20,8 +20,8 @@ class TenantMiddleware(MiddlewareMixin):
         # A logged-in user's own tenant is the source of truth for which
         # business's data they see — this matters as soon as more than one
         # business shares the same deployed URL (no per-client subdomain).
-        # Subdomain-based resolution below is only a fallback for requests
-        # where we don't yet know who's asking (login page, signup, etc.).
+        # There is no fallback for requests where we don't yet know who's
+        # asking (login page, signup, etc.) -- see the anonymous branch below.
         if hasattr(request, 'user') and request.user.is_authenticated and request.user.tenant_id:
             try:
                 tenant = request.user.tenant
@@ -38,49 +38,26 @@ class TenantMiddleware(MiddlewareMixin):
             request.tenant = tenant
             return
 
-        # Get tenant from subdomain (used for anonymous/pre-login requests)
-        host = request.get_host().split(':')[0]  # Remove port
-        subdomain = host.split('.')[0] if '.' in host else None
-
-        if subdomain and subdomain != '127' and subdomain != 'localhost':
-            try:
-                tenant = Tenant.objects.get(subdomain=subdomain)
-                _local.tenant = tenant
-                _local.is_super_admin = False
-                request.tenant = tenant
-            except Tenant.DoesNotExist:
-                # Handle invalid tenant
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
-            except DatabaseError:
-                # A lapsed connection, paused DB, or missing table would
-                # otherwise take down every anonymous request site-wide
-                # (this lookup runs before login on every page, including
-                # the landing page). Degrade to "no tenant" instead of a
-                # hard 500 so at least the public/login pages stay up.
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
-        else:
-            # Default to 'default' tenant for localhost or no subdomain
-            try:
-                tenant = Tenant.objects.get(subdomain='default')
-                _local.tenant = tenant
-                _local.is_super_admin = False
-                request.tenant = tenant
-            except Tenant.DoesNotExist:
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
-            except DatabaseError:
-                _local.tenant = None
-                _local.is_super_admin = False
-                request.tenant = None
-
-        # For super admin, allow access to all
-        if hasattr(request, 'user') and request.user.is_authenticated and request.user.is_super_admin:
-            _local.is_super_admin = True
+        # Anonymous / pre-login request: there is no authorized business to
+        # scope to. This deployment has no real per-tenant subdomain routing
+        # (a single fixed ALLOWED_HOSTS domain serves every tenant), so there
+        # is no safe way to guess a tenant from the request -- doing so used
+        # to fall back to a hardcoded 'default' tenant, which is exactly the
+        # anonymous/shared-account anti-pattern that must not exist here.
+        #
+        # Note this does NOT make TenantManager-backed querysets safe to run
+        # unscoped during an anonymous request: with no current tenant set,
+        # TenantManager.get_queryset() (tenants/models.py) returns its
+        # queryset UNFILTERED, not empty -- "no tenant" means "no implicit
+        # filter applied", the same way it already behaves mid-request before
+        # this middleware has run. Anonymous-reachable views must scope
+        # themselves explicitly instead (see sales/views_public.py's
+        # PaymentRequest.token / MpesaTransaction.checkout_request_id
+        # lookups, which are safe because those identifiers are themselves
+        # unguessable and unique, not because of tenant filtering).
+        _local.tenant = None
+        _local.is_super_admin = False
+        request.tenant = None
 
 class SubscriptionGateMiddleware(MiddlewareMixin):
     """Blocks access once a tenant's trial/subscription has lapsed,

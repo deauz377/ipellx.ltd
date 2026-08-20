@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import formset_factory
 from .models import Invoice, InvoiceItem, Payment, PaymentRequest, Order, OrderItem, DailySalesEntry, ProfitEntry
-from inventory.models import Product
+from inventory.models import Product, Supplier
 from customers.models import Customer
 
 
@@ -33,6 +33,14 @@ class InvoiceForm(forms.ModelForm):
             'discount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Discount amount'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Meta.fields would otherwise build this dropdown's queryset once, at
+        # class-definition time -- before any request/tenant context exists,
+        # permanently baking in every tenant's customers. Re-set it here so it
+        # runs per-request, after TenantMiddleware has set the current tenant.
+        self.fields['customer'].queryset = Customer.objects.all()
+
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceItem
@@ -44,6 +52,11 @@ class InvoiceItemForm(forms.ModelForm):
             'sale_channel': forms.Select(attrs={'class': 'form-select'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Same class-definition-time queryset issue as InvoiceForm.customer above.
+        self.fields['product'].queryset = Product.objects.all()
+
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
@@ -54,6 +67,12 @@ class OrderForm(forms.ModelForm):
             'supplier': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Same class-definition-time queryset issue as InvoiceForm.customer above.
+        self.fields['customer'].queryset = Customer.objects.all()
+        self.fields['supplier'].queryset = Supplier.objects.all()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -76,6 +95,11 @@ class OrderItemForm(forms.ModelForm):
             'qty': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Same class-definition-time queryset issue as InvoiceForm.customer above.
+        self.fields['product'].queryset = Product.objects.all()
 
 class PaymentForm(forms.ModelForm):
     class Meta:
@@ -114,7 +138,7 @@ class QuickSaleForm(forms.Form):
     """The top-level fields for a one-page daily sale entry: who bought,
     how they paid, and any overall discount."""
     customer = forms.ModelChoiceField(
-        queryset=Customer.objects.all().order_by('name'),
+        queryset=Customer.objects.none(),
         required=False,
         empty_label='Walk-in customer (no account)',
         widget=forms.Select(attrs={'class': 'form-select'}),
@@ -135,6 +159,13 @@ class QuickSaleForm(forms.Form):
         required=False, min_value=0, initial=0, max_digits=6, decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Same class-definition-time queryset issue as InvoiceForm.customer
+        # above -- the class-body default of Customer.objects.all() would
+        # otherwise be evaluated at import time, before any tenant is set.
+        self.fields['customer'].queryset = Customer.objects.all().order_by('name')
 
 
 class QuickSaleItemForm(forms.Form):
