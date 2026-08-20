@@ -224,6 +224,83 @@ class BudgetPermissionTests(TwoTenantTestCase):
         self.assertIn(reverse('core:login'), response.url)
 
 
+class MainDashboardBudgetCardTests(TwoTenantTestCase):
+    """Part 9: budget-vs-spending summary cards on the main dashboard
+    itself, not only inside the Budgeting section."""
+
+    def test_owner_sees_budget_cards_with_correct_figures(self):
+        today = date.today()
+        make_budget(
+            self.tenant_a, self.user_a, period='monthly', category='rent',
+            amount=Decimal('10000'),
+            start_date=today.replace(day=1), end_date=today, name='This Month Rent',
+        )
+        Expense.objects.create(tenant=self.tenant_a, category='rent', amount=Decimal('6500'), date=today)
+
+        self.login_a()
+        response = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(response.status_code, 200)
+
+        summaries = {s['period']: s for s in response.context['budget_summaries']}
+        self.assertEqual(summaries['monthly']['budgeted'], Decimal('10000'))
+        self.assertEqual(summaries['monthly']['spent'], Decimal('6500'))
+        self.assertEqual(summaries['monthly']['remaining'], Decimal('3500'))
+        self.assertEqual(summaries['monthly']['usage_percent'], Decimal('65.00'))
+        self.assertFalse(summaries['monthly']['over_budget'])
+        self.assertContains(response, 'Monthly Budget')
+
+    def test_main_dashboard_figures_match_budgeting_dashboard(self):
+        """The two pages must never disagree about the same number."""
+        today = date.today()
+        make_budget(
+            self.tenant_a, self.user_a, period='monthly', category='rent', amount=Decimal('8000'),
+            start_date=today.replace(day=1), end_date=today, name='Matching Test',
+        )
+        Expense.objects.create(tenant=self.tenant_a, category='rent', amount=Decimal('2000'), date=today)
+
+        self.login_a()
+        main = self.client.get(reverse('dashboard_overview'))
+        budgeting = self.client.get(reverse('budgeting:dashboard'), {'period': 'monthly'})
+
+        main_monthly = next(s for s in main.context['budget_summaries'] if s['period'] == 'monthly')
+        self.assertEqual(main_monthly['budgeted'], budgeting.context['total_budgeted'])
+        self.assertEqual(main_monthly['spent'], budgeting.context['total_spent'])
+
+    def test_staff_does_not_get_budget_cards(self):
+        staff = User.objects.create_user(
+            username='staff_dash', password='TestPass123!', tenant=self.tenant_a,
+            role=User.Role.STAFF, email_verified=True,
+        )
+        self.client.login(username='staff_dash', password='TestPass123!')
+        response = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context['budget_summaries'])
+        self.assertNotContains(response, 'Monthly Budget')
+
+    def test_dashboard_safe_with_no_budgets_at_all(self):
+        self.login_a()
+        response = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(response.status_code, 200)
+        for summary in response.context['budget_summaries']:
+            self.assertEqual(summary['budgeted'], Decimal('0'))
+            self.assertEqual(summary['spent'], Decimal('0'))
+            self.assertEqual(summary['usage_percent'], Decimal('0'))
+            self.assertFalse(summary['over_budget'])
+        self.assertContains(response, 'No monthly budget set')
+
+    def test_other_tenant_budget_never_appears_on_this_dashboard(self):
+        today = date.today()
+        make_budget(
+            self.tenant_b, self.user_b, period='monthly', category='rent', amount=Decimal('99999'),
+            start_date=today.replace(day=1), end_date=today, name='Tenant B Budget',
+        )
+        self.login_a()
+        response = self.client.get(reverse('dashboard_overview'))
+        monthly = next(s for s in response.context['budget_summaries'] if s['period'] == 'monthly')
+        self.assertEqual(monthly['budgeted'], Decimal('0'))
+        self.assertNotContains(response, '99999')
+
+
 class BudgetFormValidationTests(TwoTenantTestCase):
     def test_end_date_before_start_date_rejected(self):
         self.login_a()

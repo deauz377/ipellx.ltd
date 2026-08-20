@@ -110,6 +110,18 @@ def overview(request):
     # wrapped in float().
     product_data = [float(p['quantity']) for p in top_products_list]
 
+    # Budget vs spending for each period, shown as summary cards at the top
+    # of the dashboard. Restricted to the same roles that can reach the
+    # Budgeting section itself -- budgets reveal planned spend and salary
+    # figures that Staff/Sales roles shouldn't see just by logging in.
+    budget_summaries = None
+    if request.user.has_role('OWNER', 'MANAGER', 'ACCOUNTANT'):
+        from budgeting.utils import period_summary
+        budget_summaries = [
+            period_summary(request.user.tenant, period)
+            for period in ('daily', 'weekly', 'monthly')
+        ]
+
     debtors = Customer.objects.filter(balance__gt=0).order_by('-balance')[:5]
 
     # Payments received (cash/mpesa/bank), plus any M-Pesa STK Push attempts
@@ -152,6 +164,7 @@ def overview(request):
         'low_stock_products': low_stock_products,
         'unpaid_invoices': unpaid_invoices,
         'unpaid_invoices_count': unpaid_invoices_count,
+        'budget_summaries': budget_summaries,
 
         # Chart data as JSON
         'sales_trend_data': json.dumps(sales_trend),

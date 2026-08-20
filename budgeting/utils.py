@@ -27,6 +27,57 @@ def category_spend(tenant, category, start, end):
     return total or Decimal('0')
 
 
+def period_summary(tenant, period, reference_date=None):
+    """Budgeted / spent / remaining totals for every budget of `period`
+    overlapping the current period window.
+
+    Spend is computed per budget over that budget's own date range (the
+    same way Budget.spent_amount does it), not over the period window, so
+    these figures always agree exactly with the Budgeting dashboard --
+    two pages showing different numbers for the same thing would read as
+    a bug to a business owner. The cache only avoids repeating an
+    identical query; budgets sharing a category and range are still each
+    counted, matching the Budgeting dashboard's own totals.
+    """
+    from .models import Budget
+
+    start, end = period_bounds(period, reference_date)
+    summary = {
+        'period': period,
+        'label': dict(Budget.PERIOD_CHOICES).get(period, period),
+        'start': start,
+        'end': end,
+        'budgeted': Decimal('0'),
+        'spent': Decimal('0'),
+        'remaining': Decimal('0'),
+        'usage_percent': Decimal('0'),
+        'count': 0,
+        'over_budget': False,
+    }
+    if tenant is None:
+        return summary
+
+    budgets = Budget.objects.filter(
+        tenant=tenant, period=period, start_date__lte=end, end_date__gte=start,
+    )
+
+    spend_cache = {}
+    for budget in budgets:
+        summary['count'] += 1
+        summary['budgeted'] += budget.amount
+        window_start, window_end = budget._spend_window()
+        key = (budget.category, window_start, window_end)
+        if key not in spend_cache:
+            spend_cache[key] = category_spend(tenant, budget.category, window_start, window_end)
+        summary['spent'] += spend_cache[key]
+
+    summary['remaining'] = summary['budgeted'] - summary['spent']
+    if summary['budgeted']:
+        summary['usage_percent'] = (summary['spent'] / summary['budgeted']) * 100
+    summary['over_budget'] = summary['spent'] > summary['budgeted'] and summary['budgeted'] > 0
+    return summary
+
+
 def period_bounds(period, reference_date=None):
     """(start, end) date range for 'daily'/'weekly'/'monthly', containing
     reference_date (defaults to today). Weekly is Mon-Sun; monthly is the
