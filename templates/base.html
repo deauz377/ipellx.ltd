@@ -637,7 +637,7 @@
                     <i class="bi bi-person-heart"></i> Customers
                 </a>
             </li>
-            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'ACCOUNTANT' %}
             <li>
                 <a class="{% if request.resolver_match.app_name == 'accounting' %}active{% endif %}" href="{% url 'accounting:dashboard' %}">
                     <i class="bi bi-calculator"></i> Accounting
@@ -663,7 +663,7 @@
                     <i class="bi bi-people"></i> HR & Payroll
                 </a>
             </li>
-            {% if user.role == 'OWNER' or user.role == 'MANAGER' %}
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'ACCOUNTANT' %}
             <li>
                 <a class="{% if request.resolver_match.url_name == 'trial_balance' %}active{% endif %}" href="{% url 'accounting:trial_balance' %}">
                     <i class="bi bi-bar-chart"></i> Reports
@@ -700,6 +700,17 @@
             </li>
             <li>
                 <a class="{% if request.resolver_match.url_name == 'dashboard' and 'payroll' in request.resolver_match.namespaces %}active{% endif %}" href="{% url 'payroll:dashboard' %}">
+                    <i class="bi bi-cash-stack"></i> Payroll
+                </a>
+            </li>
+            {% elif user.role == 'ACCOUNTANT' %}
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'staff_portal' %}active{% endif %}" href="{% url 'hr:staff_portal' %}">
+                    <i class="bi bi-person-badge"></i> My Portal
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'payroll' %}active{% endif %}" href="{% url 'payroll:dashboard' %}">
                     <i class="bi bi-cash-stack"></i> Payroll
                 </a>
             </li>

@@ -89,7 +89,18 @@ def staff_portal(request):
 
     is_owner = request.user.role == 'OWNER'
     is_manager = request.user.role == 'MANAGER'
-    portal_label = 'CEO' if is_owner else ('Manager' if is_manager else 'Staff')
+    # Label the portal with the role the person actually holds. Previously
+    # everyone who wasn't an Owner or Manager was shown "Staff Portal", so an
+    # Accountant or Sales Staff was told they were generic staff.
+    PORTAL_LABELS = {
+        'OWNER': 'CEO',
+        'MANAGER': 'Manager',
+        'ACCOUNTANT': 'Accountant',
+        'SALES_STAFF': 'Sales',
+        'INVENTORY_MANAGER': 'Inventory',
+        'STAFF': 'Staff',
+    }
+    portal_label = PORTAL_LABELS.get(request.user.role, 'Staff')
 
     reports_to = None
     if is_manager:

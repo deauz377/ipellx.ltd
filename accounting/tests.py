@@ -149,3 +149,55 @@ class AccountingTenantIsolationTests(TwoTenantTestCase):
         })
         self.assertEqual(response.status_code, 404)
         self.assertFalse(BankReconciliation.objects.filter(bank_account=self.bank_account_b).exists())
+
+
+from tenants.models import User as TenantUser
+
+
+class AccountantAccessTests(TwoTenantTestCase):
+    """The Accountant role had full backend access to Accounting, Reports and
+    Payroll, but the sidebar hid all three -- the only way to reach their own
+    module was to type the URL. These pin the nav to the permissions."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.accountant = TenantUser.objects.create_user(
+            username='accountant_nav', password='TestPass123!', tenant=cls.tenant_a,
+            role=TenantUser.Role.ACCOUNTANT, email_verified=True,
+        )
+        cls.sales_staff = TenantUser.objects.create_user(
+            username='sales_nav', password='TestPass123!', tenant=cls.tenant_a,
+            role=TenantUser.Role.SALES_STAFF, email_verified=True,
+        )
+
+    def login_accountant(self):
+        self.client.login(username='accountant_nav', password='TestPass123!')
+
+    def test_accountant_can_actually_open_their_modules(self):
+        self.login_accountant()
+        for url in (reverse('accounting:dashboard'),
+                    reverse('accounting:trial_balance'),
+                    reverse('payroll:dashboard'),
+                    reverse('accounting:chart_accounts_list')):
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+
+    def test_sidebar_links_to_those_modules(self):
+        self.login_accountant()
+        html = self.client.get(reverse('dashboard_overview')).content.decode()
+        self.assertIn(reverse('accounting:dashboard'), html)
+        self.assertIn(reverse('accounting:trial_balance'), html)
+        self.assertIn(reverse('payroll:dashboard'), html)
+
+    def test_accountant_still_excluded_from_owner_only_areas(self):
+        self.login_accountant()
+        self.assertEqual(self.client.get(reverse('ceo_dashboard')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('accounting:savings_goal_list')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('team_activity')).status_code, 403)
+
+    def test_sales_staff_does_not_gain_accounting_access(self):
+        """Widening the nav for Accountants must not widen it for anyone else."""
+        self.client.login(username='sales_nav', password='TestPass123!')
+        self.assertEqual(self.client.get(reverse('accounting:dashboard')).status_code, 403)
+        html = self.client.get(reverse('dashboard_overview')).content.decode()
+        self.assertNotIn(reverse('accounting:dashboard'), html)
