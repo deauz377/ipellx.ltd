@@ -459,6 +459,14 @@ def ceo_dashboard(request):
         'pending_approvals_count': pending_approvals_count,
         'alerts': alerts,
     }
+
+    # CEO Portal: the team roster, open tasks, upcoming meetings and unread
+    # message counts that make this dashboard actionable rather than purely
+    # observational. Built in the collaboration app so the models and their
+    # tenant-scoping rules stay in one place.
+    from collaboration.views import ceo_portal_context
+    context.update(ceo_portal_context(request))
+
     return render(request, 'dashboard/ceo_dashboard.html', context)
 
 

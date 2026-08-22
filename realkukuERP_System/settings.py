@@ -128,6 +128,7 @@ INSTALLED_APPS = [
     'hr',
     'accounting',
     'budgeting',
+    'collaboration',
     'guardian',  # For object-level permissions
     'rest_framework',  # For API
     'rest_framework_simplejwt',  # For JWT

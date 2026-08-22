@@ -1,0 +1,45 @@
+{% comment %}
+Shared styling for every collaboration page. Kept in one partial that each
+template {% include %}s inside its own {% block extra_css %}, so the pages
+stay visually consistent without repeating the rules or adding a build step.
+Uses only the CSS custom properties base.html already defines, so dark mode
+works with no extra work.
+{% endcomment %}
+<style>
+    .portal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .portal-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .portal-card h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .table-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .table-body { overflow-x: auto; }
+
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px; }
+    .pill-urgent { background: rgba(239,68,68,0.15); color: #B91C1C; }
+    .pill-high   { background: rgba(245,158,11,0.15); color: #92400E; }
+    .pill-normal { background: rgba(59,130,246,0.12); color: #1E40AF; }
+    .pill-low    { background: rgba(107,114,128,0.15); color: #4B5563; }
+    .pill-done   { background: rgba(16,185,129,0.15); color: #065F46; }
+    .pill-overdue{ background: rgba(239,68,68,0.15); color: #B91C1C; }
+
+    [data-theme="dark"] .pill-urgent, [data-theme="dark"] .pill-overdue { color: #FCA5A5; }
+    [data-theme="dark"] .pill-high   { color: #FCD34D; }
+    [data-theme="dark"] .pill-normal { color: #93C5FD; }
+    [data-theme="dark"] .pill-low    { color: #D1D5DB; }
+    [data-theme="dark"] .pill-done   { color: #6EE7B7; }
+
+    /* Message thread */
+    .thread { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; max-height: 460px; overflow-y: auto; }
+    .bubble { max-width: 78%; padding: 10px 14px; border-radius: 12px; font-size: 0.9rem; line-height: 1.45; }
+    .bubble .meta { display: block; font-size: 0.7rem; opacity: 0.7; margin-top: 5px; }
+    .bubble.mine { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 3px; }
+    .bubble.theirs { align-self: flex-start; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); border-bottom-left-radius: 3px; }
+
+    .empty-note { padding: 20px; color: var(--text-secondary); margin: 0; }
+
+    @media (max-width: 576px) {
+        .bubble { max-width: 90%; }
+        .table-header { flex-direction: column; align-items: flex-start; }
+    }
+</style>

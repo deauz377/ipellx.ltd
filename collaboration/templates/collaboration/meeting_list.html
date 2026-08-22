@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Meetings - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'collaboration/_portal_css.html' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-calendar-event"></i> Meetings</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'ceo_dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> CEO Dashboard</a>
+        <a href="{% url 'collaboration:meeting_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Call a Meeting</a>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header"><h3>Scheduled &amp; past meetings</h3></div>
+    <div class="table-body">
+        {% if meetings %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Meeting</th><th>When</th><th>Where</th><th>Attendees</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for m in meetings %}
+                <tr>
+                    <td>
+                        <strong>{{ m.title }}</strong>
+                        {% if m.agenda %}<div class="text-muted" style="font-size:0.85rem;">{{ m.agenda|truncatechars:80 }}</div>{% endif %}
+                    </td>
+                    <td>{{ m.scheduled_for|date:"d M Y, H:i" }}</td>
+                    <td>{{ m.location|default:"&mdash;" }}</td>
+                    <td>
+                        {% for person in m.attendees.all %}{{ person.username }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Nobody invited</span>{% endfor %}
+                    </td>
+                    <td>
+                        {% if m.status == 'cancelled' %}<span class="pill pill-overdue">CANCELLED</span>
+                        {% elif m.is_upcoming %}<span class="pill pill-normal">UPCOMING</span>
+                        {% else %}<span class="text-muted">{{ m.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if m.status == 'scheduled' %}
+                        <a href="{% url 'collaboration:meeting_cancel' m.pk %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">No meetings yet. <a href="{% url 'collaboration:meeting_create' %}">Call the first one &rarr;</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

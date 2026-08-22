@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Cancel meeting - 14xlevel ERP{% endblock %}
+{% block content %}
+<div class="mb-4"><h1><i class="bi bi-x-circle"></i> Cancel meeting</h1></div>
+<div class="card" style="max-width:560px;">
+    <div class="card-body">
+        <p>Cancel <strong>"{{ meeting.title }}"</strong> on {{ meeting.scheduled_for|date:"d M Y, H:i" }}?</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Reason (optional)</label>
+                <input type="text" name="cancel_reason" class="form-control" placeholder="Let attendees know why">
+            </div>
+            <button type="submit" class="btn btn-danger">Cancel meeting</button>
+            <a href="{% url 'collaboration:meeting_list' %}" class="btn btn-secondary">Keep it</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

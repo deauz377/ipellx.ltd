@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}My Work - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'collaboration/_portal_css.html' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-check2-square"></i> My Work</h1>
+    <a href="{% url 'collaboration:message_inbox' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-chat-dots"></i> Messages
+        {% if unread_total %}<span class="badge badge-danger">{{ unread_total }}</span>{% endif %}
+    </a>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-list-task"></i> Tasks assigned to me</h3>
+        <span class="text-muted" style="font-size:0.85rem;">{{ open_tasks|length }} open</span>
+    </div>
+    <div class="table-body">
+        {% if open_tasks %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Task</th><th>From</th><th>Due</th><th>Priority</th><th></th></tr></thead>
+            <tbody>
+                {% for task in open_tasks %}
+                <tr>
+                    <td>
+                        <strong>{{ task.title }}</strong>
+                        {% if task.description %}<div class="text-muted" style="font-size:0.85rem;">{{ task.description|truncatechars:90 }}</div>{% endif %}
+                    </td>
+                    <td>{{ task.assigned_by.username|default:"—" }}</td>
+                    <td>
+                        {% if task.due_date %}
+                            {{ task.due_date|date:"d M Y" }}
+                            {% if task.is_overdue %}<span class="pill pill-overdue">OVERDUE</span>{% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td><span class="pill pill-{{ task.priority }}">{{ task.get_priority_display|upper }}</span></td>
+                    <td><a href="{% url 'collaboration:task_complete' task.pk %}" class="btn btn-sm btn-success">Mark done</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">Nothing assigned to you right now.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-calendar-event"></i> My upcoming meetings</h3></div>
+    <div class="table-body">
+        {% if upcoming_meetings %}
+        <table class="table mb-0">
+            <thead><tr><th>Meeting</th><th>When</th><th>Where</th><th>Called by</th></tr></thead>
+            <tbody>
+                {% for m in upcoming_meetings %}
+                <tr>
+                    <td><strong>{{ m.title }}</strong>
+                        {% if m.agenda %}<div class="text-muted" style="font-size:0.85rem;">{{ m.agenda|truncatechars:90 }}</div>{% endif %}
+                    </td>
+                    <td>{{ m.scheduled_for|date:"d M Y, H:i" }}</td>
+                    <td>{{ m.location|default:"—" }}</td>
+                    <td>{{ m.called_by.username|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">No meetings scheduled for you.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-chat-dots"></i> Conversations</h3>
+        <a href="{% url 'collaboration:message_inbox' %}" style="font-size:0.85rem; color:var(--primary);">Start a new one &rarr;</a>
+    </div>
+    <div class="table-body">
+        {% if conversations %}
+        <table class="table table-hover mb-0">
+            <tbody>
+                {% for c in conversations %}
+                <tr>
+                    <td>
+                        <a href="{% url 'collaboration:conversation' c.partner.pk %}"><strong>{{ c.partner.username }}</strong></a>
+                        <span class="text-muted" style="font-size:0.8rem;">{{ c.partner.get_role_display }}</span>
+                        {% if c.latest %}<div class="text-muted" style="font-size:0.85rem;">{{ c.latest.body|truncatechars:70 }}</div>{% endif %}
+                    </td>
+                    <td class="text-end" style="white-space:nowrap;">
+                        {% if c.unread %}<span class="badge badge-danger">{{ c.unread }} new</span>{% endif %}
+                        {% if c.latest %}<div class="text-muted" style="font-size:0.78rem;">{{ c.latest.sent_at|date:"d M, H:i" }}</div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">No messages yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if recent_done %}
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-check2-circle"></i> Recently completed</h3></div>
+    <div class="table-body">
+        <table class="table mb-0">
+            <tbody>
+                {% for task in recent_done %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td class="text-end"><span class="pill pill-done">DONE</span>
+                        <span class="text-muted" style="font-size:0.8rem;">{{ task.completed_at|date:"d M Y" }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

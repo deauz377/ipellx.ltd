@@ -105,6 +105,100 @@
     </div>
 </div>
 
+<!-- ===================== CEO PORTAL ===================== -->
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-people-fill"></i> CEO Portal &mdash; your team</h3>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'collaboration:task_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Assign Task</a>
+            <a href="{% url 'collaboration:meeting_create' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus"></i> Call a Meeting</a>
+            <a href="{% url 'collaboration:message_inbox' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-chat-dots"></i> Messages{% if portal_unread_total %} <span class="badge badge-danger">{{ portal_unread_total }}</span>{% endif %}
+            </a>
+        </div>
+    </div>
+    <div class="table-body">
+        {% if portal_team %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Team member</th><th>Role</th><th>Open tasks</th><th>Unread</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+                {% for member in portal_team %}
+                <tr>
+                    <td><strong>{{ member.username }}</strong></td>
+                    <td>{{ member.get_role_display }}</td>
+                    <td>{% if member.open_task_count %}<span class="badge badge-info">{{ member.open_task_count }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td>{% if member.unread_from_them %}<span class="badge badge-danger">{{ member.unread_from_them }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td class="text-end" style="white-space:nowrap;">
+                        <a href="{% url 'collaboration:task_create' %}?assigned_to={{ member.pk }}" class="btn btn-sm btn-outline-primary">Assign</a>
+                        <a href="{% url 'collaboration:conversation' member.pk %}" class="btn btn-sm btn-outline-secondary">Message</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="padding:20px; margin:0; color:var(--text-secondary);">
+            No team members yet. <a href="{% url 'team_add_member' %}">Add someone &rarr;</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-list-task"></i> Open tasks
+            {% if portal_overdue_count %}<span class="badge badge-danger">{{ portal_overdue_count }} overdue</span>{% endif %}
+        </h3>
+        <a href="{% url 'collaboration:task_list' %}" style="font-size:0.85rem; color:var(--primary);">All tasks &rarr;</a>
+    </div>
+    <div class="table-body">
+        {% if portal_open_tasks %}
+        <table class="table mb-0">
+            <thead><tr><th>Task</th><th>Assigned to</th><th>Due</th><th>Priority</th></tr></thead>
+            <tbody>
+                {% for task in portal_open_tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.assigned_to.username }}</td>
+                    <td>{% if task.due_date %}{{ task.due_date|date:"d M" }}{% if task.is_overdue %} <span class="badge badge-danger">OVERDUE</span>{% endif %}{% else %}&mdash;{% endif %}</td>
+                    <td>{{ task.get_priority_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="padding:20px; margin:0; color:var(--text-secondary);">Nothing outstanding.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-calendar-event"></i> Upcoming meetings</h3>
+        <a href="{% url 'collaboration:meeting_list' %}" style="font-size:0.85rem; color:var(--primary);">All meetings &rarr;</a>
+    </div>
+    <div class="table-body">
+        {% if portal_upcoming_meetings %}
+        <table class="table mb-0">
+            <thead><tr><th>Meeting</th><th>When</th><th>Where</th><th>Attendees</th></tr></thead>
+            <tbody>
+                {% for m in portal_upcoming_meetings %}
+                <tr>
+                    <td>{{ m.title }}</td>
+                    <td>{{ m.scheduled_for|date:"d M Y, H:i" }}</td>
+                    <td>{{ m.location|default:"&mdash;" }}</td>
+                    <td>{{ m.attendees.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="padding:20px; margin:0; color:var(--text-secondary);">No meetings scheduled.</p>
+        {% endif %}
+    </div>
+</div>
+<!-- =================== END CEO PORTAL =================== -->
+
 <div class="table-card">
     <div class="table-header"><h3><i class="bi bi-bell"></i> Important Alerts</h3></div>
     <div class="table-body" style="padding: 16px 20px;">

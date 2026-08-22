@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ partner.username }} - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'collaboration/_portal_css.html' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-chat-dots"></i> {{ partner.username }}</h1>
+    <a href="{% url 'collaboration:message_inbox' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> All messages</a>
+</div>
+<p class="text-muted">{{ partner.get_role_display }}</p>
+
+<div class="table-card">
+    <div class="thread" id="thread">
+        {% for m in thread %}
+            <div class="bubble {% if m.sender_id == user.pk %}mine{% else %}theirs{% endif %}">
+                {{ m.body|linebreaksbr }}
+                <span class="meta">{{ m.sent_at|date:"d M Y, H:i" }}</span>
+            </div>
+        {% empty %}
+            <p class="empty-note">No messages yet — say something.</p>
+        {% endfor %}
+    </div>
+
+    <div style="border-top:1px solid var(--border); padding:16px 20px;">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.body.errors %}<div class="alert alert-danger">{{ form.body.errors|join:", " }}</div>{% endif %}
+            {{ form.body }}
+            <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-send"></i> Send</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Long threads should open at the newest message, like any chat app.
+    (function () {
+        var el = document.getElementById('thread');
+        if (el) { el.scrollTop = el.scrollHeight; }
+    })();
+</script>
+{% endblock %}

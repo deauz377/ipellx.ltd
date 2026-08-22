@@ -34,6 +34,10 @@ urlpatterns = [
     path('hr/', include('hr.urls')),
     path('accounting/', include('accounting.urls')),
     path('budgeting/', include('budgeting.urls')),
+    # 'portal/' rather than 'team/': dashboard.urls is included at '' and
+    # already owns 'team/' (team_activity), so sharing that prefix would be
+    # resolution-order-dependent and confusing to read.
+    path('portal/', include('collaboration.urls')),
     # Unauthenticated customer-facing payment page -- secured by the
     # unguessable token in the URL itself, not a login. See
     # core.middleware.EXEMPT_PREFIXES and sales/views_public.py.

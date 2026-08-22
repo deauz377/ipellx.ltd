@@ -662,6 +662,11 @@
                 </a>
             </li>
             {% endif %}
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'collaboration' %}active{% endif %}" href="{% url 'collaboration:my_work' %}">
+                    <i class="bi bi-check2-square"></i> My Work
+                </a>
+            </li>
             {% if user.role == 'OWNER' %}
             <li>
                 <a class="{% if request.resolver_match.url_name == 'team_activity' %}active{% endif %}" href="{% url 'team_activity' %}">
@@ -670,7 +675,7 @@
             </li>
             <li>
                 <a class="{% if request.resolver_match.url_name == 'staff_portal' %}active{% endif %}" href="{% url 'hr:staff_portal' %}">
-                    <i class="bi bi-person-badge"></i> CEO Portal
+                    <i class="bi bi-person-badge"></i> My Portal
                 </a>
             </li>
             <li>
