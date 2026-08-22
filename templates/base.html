@@ -562,6 +562,14 @@
                 </button>
             </li>
             <li class="nav-item">
+                <a class="nav-link position-relative" href="{% url 'collaboration:message_inbox' %}" title="Messages">
+                    <i class="bi bi-envelope"></i>
+                    {% if nav_unread_messages %}
+                    <span class="badge badge-danger position-absolute" style="top:2px; right:-2px; font-size:0.6rem; padding:2px 6px;">{{ nav_unread_messages }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="/admin"><i class="bi bi-gear"></i></a>
             </li>
             <li class="nav-item">
@@ -665,6 +673,7 @@
             <li>
                 <a class="{% if request.resolver_match.app_name == 'collaboration' %}active{% endif %}" href="{% url 'collaboration:my_work' %}">
                     <i class="bi bi-check2-square"></i> My Work
+                    {% if nav_unread_messages %}<span class="badge badge-danger ms-auto">{{ nav_unread_messages }}</span>{% endif %}
                 </a>
             </li>
             {% if user.role == 'OWNER' %}

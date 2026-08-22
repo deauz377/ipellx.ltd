@@ -292,3 +292,49 @@ class CeoDashboardPortalTests(PortalTestCase):
         self.assertIn('manager_a_portal', usernames)
         self.assertNotIn('owner_a', usernames)
         self.assertNotIn('staff_b_portal', usernames)
+
+
+class UnreadBadgeTests(PortalTestCase):
+    """The nav badge exists because two real messages sat unread -- nothing
+    told the recipient anything had arrived."""
+
+    def test_badge_count_appears_on_any_page_and_clears_when_read(self):
+        Message.objects.create(
+            tenant=self.tenant_a, sender=self.user_a,
+            recipient=self.manager_a, body='Please review the stock budget.',
+        )
+        self.client.login(username='manager_a_portal', password=TEST_PASSWORD)
+
+        # Visible from an unrelated page, not just the messaging screens.
+        anywhere = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(anywhere.context['nav_unread_messages'], 1)
+
+        # Opening the thread clears it.
+        self.client.get(reverse('collaboration:conversation', kwargs={'user_id': self.user_a.pk}))
+        after = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(after.context['nav_unread_messages'], 0)
+
+    def test_badge_counts_only_your_own_unread(self):
+        Message.objects.create(
+            tenant=self.tenant_a, sender=self.user_a,
+            recipient=self.manager_a, body='For the manager only',
+        )
+        self.login_staff_a()
+        response = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(response.context['nav_unread_messages'], 0)
+
+    def test_badge_is_zero_for_anonymous_visitors(self):
+        response = self.client.get(reverse('dashboard_overview'))
+        self.assertEqual(response.context['nav_unread_messages'], 0)
+
+    def test_message_to_a_lookalike_account_in_another_business_is_not_delivered(self):
+        """Guards the exact confusion that prompted this: two businesses each
+        had a similarly-named manager, and a message sent to one was looked
+        for while signed in as the other."""
+        lookalike = make_member(self.tenant_b, 'manager_a_portalz', role=User.Role.MANAGER)
+        Message.objects.create(
+            tenant=self.tenant_a, sender=self.user_a,
+            recipient=self.manager_a, body='Intended for business A',
+        )
+        self.assertEqual(Message.unread_count_for(self.manager_a), 1)
+        self.assertEqual(Message.unread_count_for(lookalike), 0)

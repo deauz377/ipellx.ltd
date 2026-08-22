@@ -168,6 +168,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # Unread DM count for the nav badge -- see the docstring there
+                # for why it fails soft.
+                'collaboration.context_processors.unread_messages',
             ],
         },
     },
