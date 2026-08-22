@@ -1,0 +1,47 @@
+{% comment %}
+Shared styling for the stock screens. Included by each template inside its own
+{% block extra_css %} so the pages stay consistent without repeating rules.
+Uses only the CSS variables base.html already defines, so dark mode works with
+no extra work.
+{% endcomment %}
+<style>
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-bottom: 24px; }
+    .kpi-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+    .kpi-card.ok     { border-left: 4px solid var(--success); }
+    .kpi-card.warn   { border-left: 4px solid var(--warning); }
+    .kpi-card.danger { border-left: 4px solid var(--error); }
+    .kpi-card.info   { border-left: 4px solid var(--primary); }
+    .kpi-label { font-size: 0.74rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .kpi-sub { font-size: 0.76rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .table-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .table-body { overflow-x: auto; }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+    .pill-ok      { background: rgba(16,185,129,0.15); color: #065F46; }
+    .pill-warn    { background: rgba(245,158,11,0.16); color: #92400E; }
+    .pill-danger  { background: rgba(239,68,68,0.15); color: #B91C1C; }
+    .pill-info    { background: rgba(59,130,246,0.14); color: #1E40AF; }
+    .pill-muted   { background: rgba(107,114,128,0.15); color: #4B5563; }
+    [data-theme="dark"] .pill-ok     { color: #6EE7B7; }
+    [data-theme="dark"] .pill-warn   { color: #FCD34D; }
+    [data-theme="dark"] .pill-danger { color: #FCA5A5; }
+    [data-theme="dark"] .pill-info   { color: #93C5FD; }
+    [data-theme="dark"] .pill-muted  { color: #D1D5DB; }
+
+    .empty-note { padding: 18px; margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+    .qty-in  { color: var(--success); font-weight: 600; }
+    .qty-out { color: var(--error); font-weight: 600; }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .action-bar form { display: inline; }
+
+    @media (max-width: 576px) {
+        .table-header { flex-direction: column; align-items: flex-start; }
+        .kpi-value { font-size: 1.35rem; }
+    }
+</style>

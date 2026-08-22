@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Stock Counts - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-clipboard-check"></i> Stock Counts</h1>
+    <div class="action-bar">
+        <a href="{% url 'inventory:command_centre' %}" class="btn btn-outline-secondary btn-sm">Stock Control</a>
+        {% if can_edit %}<a href="{% url 'inventory:count_start' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Start Count</a>{% endif %}
+    </div>
+</div>
+
+<div class="table-card"><div class="table-body">
+<table class="table table-hover mb-0">
+    <thead><tr><th>#</th><th>Location</th><th>Status</th><th>Started</th><th>By</th><th></th></tr></thead>
+    <tbody>
+        {% for c in counts %}
+        <tr>
+            <td>{{ c.pk }}</td>
+            <td>{{ c.location.name }}</td>
+            <td>
+                {% if c.status == 'approved' %}<span class="pill pill-ok">APPROVED</span>
+                {% elif c.status == 'rejected' %}<span class="pill pill-danger">REJECTED</span>
+                {% elif c.status == 'submitted' %}<span class="pill pill-warn">AWAITING APPROVAL</span>
+                {% else %}<span class="pill pill-muted">COUNTING</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ c.created_at|date:"d M Y" }}</td>
+            <td class="text-muted">{{ c.started_by.username|default:"—" }}</td>
+            <td class="text-end"><a href="{% url 'inventory:count_detail' c.pk %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-note">No stock counts yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{% endblock %}

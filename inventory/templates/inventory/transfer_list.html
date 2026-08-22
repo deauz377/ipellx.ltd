@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Transfers - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-arrow-left-right"></i> Stock Transfers</h1>
+    <div class="action-bar">
+        <a href="{% url 'inventory:command_centre' %}" class="btn btn-outline-secondary btn-sm">Stock Control</a>
+        {% if can_edit %}<a href="{% url 'inventory:transfer_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New Transfer</a>{% endif %}
+    </div>
+</div>
+
+<div class="table-card"><div class="table-body">
+<table class="table mb-0">
+    <thead><tr><th>Product</th><th>Qty</th><th>From</th><th>To</th><th>Status</th><th>Requested by</th><th class="text-end">Action</th></tr></thead>
+    <tbody>
+        {% for t in transfers %}
+        <tr>
+            <td>{{ t.product.name }}</td>
+            <td>{{ t.quantity|floatformat:2 }}</td>
+            <td>{{ t.source.name }}</td>
+            <td>{{ t.destination.name }}</td>
+            <td>
+                {% if t.status == 'received' %}<span class="pill pill-ok">RECEIVED</span>
+                {% elif t.status == 'cancelled' %}<span class="pill pill-muted">CANCELLED</span>
+                {% elif t.status == 'in_transit' %}<span class="pill pill-warn">IN TRANSIT</span>
+                {% elif t.status == 'approved' %}<span class="pill pill-info">APPROVED</span>
+                {% else %}<span class="pill pill-muted">PENDING</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ t.requested_by.username|default:"—" }}</td>
+            <td class="text-end">
+                {% if can_edit %}
+                <div class="action-bar justify-content-end">
+                {% if t.status == 'pending' %}
+                    <form method="post" action="{% url 'inventory:transfer_action' t.pk 'approve' %}">{% csrf_token %}
+                        <button class="btn btn-sm btn-outline-primary">Approve</button></form>
+                {% elif t.status == 'approved' %}
+                    <form method="post" action="{% url 'inventory:transfer_action' t.pk 'dispatch' %}">{% csrf_token %}
+                        <button class="btn btn-sm btn-primary">Dispatch</button></form>
+                {% elif t.status == 'in_transit' %}
+                    <form method="post" action="{% url 'inventory:transfer_action' t.pk 'receive' %}">{% csrf_token %}
+                        <button class="btn btn-sm btn-success">Receive</button></form>
+                {% endif %}
+                {% if t.is_open %}
+                    <form method="post" action="{% url 'inventory:transfer_action' t.pk 'cancel' %}">{% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                {% endif %}
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty-note">No transfers yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div></div>
+
+<p class="text-muted" style="font-size:0.85rem;">
+    Stock leaves the source when a transfer is dispatched and only arrives at the destination
+    when it is received &mdash; so goods in transit are not sellable at either end.
+</p>
+{% endblock %}

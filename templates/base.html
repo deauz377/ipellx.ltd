@@ -628,10 +628,17 @@
                 </a>
             </li>
             <li>
-                <a class="{% if request.resolver_match.app_name == 'inventory' %}active{% endif %}" href="/inventory/">
+                <a class="{% if request.resolver_match.app_name == 'inventory' and '/inventory/stock/' not in request.path %}active{% endif %}" href="/inventory/">
                     <i class="bi bi-box2"></i> Inventory
                 </a>
             </li>
+            {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'INVENTORY_MANAGER' or user.role == 'ACCOUNTANT' %}
+            <li>
+                <a class="{% if '/inventory/stock/' in request.path %}active{% endif %}" href="{% url 'inventory:command_centre' %}">
+                    <i class="bi bi-boxes"></i> Stock Control
+                </a>
+            </li>
+            {% endif %}
             <li>
                 <a class="{% if request.resolver_match.app_name == 'customers' %}active{% endif %}" href="{% url 'customers:crm_dashboard' %}">
                     <i class="bi bi-person-heart"></i> Customers

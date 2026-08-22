@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Deliveries - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-truck"></i> Deliveries</h1>
+    <div class="action-bar">
+        <a href="{% url 'inventory:command_centre' %}" class="btn btn-outline-secondary btn-sm">Stock Control</a>
+        {% if can_edit %}<a href="{% url 'inventory:receipt_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Receive Stock</a>{% endif %}
+    </div>
+</div>
+<div class="table-card"><div class="table-body">
+<table class="table table-hover mb-0">
+    <thead><tr><th>#</th><th>Supplier</th><th>Invoice</th><th>Location</th><th>Status</th><th>Received by</th><th></th></tr></thead>
+    <tbody>
+        {% for r in receipts %}
+        <tr>
+            <td>{{ r.pk }}</td>
+            <td>{{ r.supplier.name|default:"—" }}</td>
+            <td>{{ r.invoice_number|default:"—" }}</td>
+            <td>{{ r.location.name }}</td>
+            <td>
+                {% if r.status == 'confirmed' %}<span class="pill pill-ok">CONFIRMED</span>
+                {% elif r.status == 'cancelled' %}<span class="pill pill-muted">CANCELLED</span>
+                {% else %}<span class="pill pill-warn">DRAFT</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ r.received_by.username|default:"—" }}</td>
+            <td class="text-end"><a href="{% url 'inventory:receipt_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty-note">No deliveries recorded yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{% endblock %}

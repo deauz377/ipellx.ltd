@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Stock by Location - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1><i class="bi bi-diagram-3"></i> Stock by Location</h1>
+    <a href="{% url 'inventory:command_centre' %}" class="btn btn-outline-secondary btn-sm">Stock Control</a>
+</div>
+<div class="card mb-3"><div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Location</label>
+            <select name="location" class="form-select">
+                <option value="">All locations</option>
+                {% for l in locations %}
+                <option value="{{ l.pk }}" {% if selected_location == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3"><button class="btn btn-primary">Filter</button></div>
+    </form>
+</div></div>
+<div class="table-card"><div class="table-body">
+<table class="table mb-0">
+    <thead><tr><th>Location</th><th>Product</th><th>Batch</th><th>Expires</th><th class="text-end">Quantity</th></tr></thead>
+    <tbody>
+        {% for lv in levels %}
+        <tr>
+            <td>{{ lv.location.name }}</td>
+            <td>{{ lv.product.name }}</td>
+            <td>{{ lv.batch.batch_number|default:"—" }}</td>
+            <td>{% if lv.batch.expiry_date %}{{ lv.batch.expiry_date|date:"d M Y" }}{% else %}—{% endif %}</td>
+            <td class="text-end">{{ lv.quantity|floatformat:2 }} {{ lv.product.get_unit_display|lower }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-note">No stock on hand.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{% endblock %}

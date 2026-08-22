@@ -15,10 +15,11 @@ impossible rather than merely fixed once.
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import DecimalField, F, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from .models import Batch, Location, StockLevel, StockMovement
+from .models import Batch, Location, Product, StockLevel, StockMovement
 
 ZERO = Decimal('0')
 
@@ -330,3 +331,60 @@ def expiring_batches(tenant, within_days=30, location=None):
     if location is not None:
         levels = levels.filter(location=location)
     return levels.order_by('batch__expiry_date')
+
+
+# ---------------------------------------------------------------------------
+# Shared figures
+# ---------------------------------------------------------------------------
+# Every screen that shows a stock number reads it from here.
+#
+# They used to each carry their own rule, and the same business showed a
+# different answer depending on who was looking: the Inventory Overview called
+# a product "low" if it held less than the catalogue average (so roughly half
+# the catalogue was always low) and valued stock as the sum of all prices times
+# the sum of all quantities, which is not a valuation of anything; the main
+# dashboard's "stock value" was actually the running total of supplier orders;
+# only the CEO dashboard had the arithmetic right. An Owner and a Storekeeper
+# comparing notes would have been reading three different sets of books.
+
+def stock_products(tenant):
+    """The product set every stock figure is measured over.
+
+    Retired products are left out: you do not reorder something you have
+    stopped selling, and counting it would make the alerts unactionable.
+    """
+    return Product.objects.filter(tenant=tenant, is_active=True)
+
+
+def _with_threshold(queryset):
+    # reorder_level is the newer per-product setting; minimum_stock is the
+    # original field and stays the fallback, so products predating the
+    # inventory upgrade keep the level they were set up with.
+    return queryset.annotate(threshold=Coalesce('reorder_level', 'minimum_stock'))
+
+
+def low_stock_queryset(tenant):
+    """On hand, but at or below the reorder level.
+
+    Out-of-stock is deliberately excluded: it is a separate and more urgent
+    state, and counting a product in both would double every alert.
+    """
+    return _with_threshold(stock_products(tenant)).filter(
+        quantity__gt=ZERO, quantity__lte=F('threshold'),
+    ).order_by('quantity')
+
+
+def out_of_stock_queryset(tenant):
+    return stock_products(tenant).filter(quantity__lte=ZERO).order_by('name')
+
+
+def stock_value(tenant):
+    """What the goods on hand cost to buy.
+
+    Cost price, not retail: valuing stock at what you hope to sell it for
+    books profit that has not happened yet.
+    """
+    return stock_products(tenant).aggregate(
+        v=Sum(F('quantity') * F('cost_price'),
+              output_field=DecimalField(max_digits=18, decimal_places=2)),
+    )['v'] or ZERO

@@ -1,23 +1,40 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Sum, Count, Q, ProtectedError
+from django.db.models import Q, ProtectedError
 from django.http import HttpResponse
 import csv
 from .models import Product, Supplier
 from .forms import ProductForm, SupplierForm
+from .services import low_stock_queryset, stock_value
+from tenants.decorators import role_required
 
+# These views had no role restriction at all: any signed-in user, including
+# Sales Staff, could create, edit or delete products. Stock-changing screens
+# are limited to the roles that own inventory; the read-only lists stay open
+# to the Accountant (valuation) and Sales Staff (availability), who need to
+# see stock without being able to change it.
+STOCK_ROLES = ('OWNER', 'MANAGER', 'INVENTORY_MANAGER')
+VIEW_ROLES = STOCK_ROLES + ('ACCOUNTANT', 'SALES_STAFF')
+
+@role_required(*VIEW_ROLES)
 def inventory_overview(request):
     # Get inventory statistics
+    tenant = request.user.tenant
     total_products = Product.objects.count()
     total_suppliers = Supplier.objects.count()
-    low_stock_products = Product.objects.filter(quantity__lte=Product.objects.filter(quantity__gt=0).aggregate(avg_quantity=Sum('quantity') / Count('id'))['avg_quantity'] or 0).count()
-    total_stock_value = Product.objects.aggregate(total=Sum('retail_price') * Sum('quantity'))['total'] or 0
+    # Both of these used to be worked out here, and both were wrong: "low"
+    # meant "below the catalogue average", and the value multiplied the sum of
+    # every price by the sum of every quantity. They now come from the same
+    # helpers the Stock Control and CEO screens use, so the figures agree.
+    low_stock = low_stock_queryset(tenant)
+    low_stock_products = low_stock.count()
+    total_stock_value = stock_value(tenant)
 
     # Get recent products
     recent_products = Product.objects.all().order_by('-id')[:5]
 
     # Get low stock alerts
-    low_stock_alerts = Product.objects.filter(quantity__lte=5).order_by('quantity')[:5]
+    low_stock_alerts = low_stock[:5]
 
     context = {
         'total_products': total_products,
@@ -30,6 +47,7 @@ def inventory_overview(request):
     return render(request, 'inventory/overview.html', context)
 
 # Products
+@role_required(*VIEW_ROLES)
 def product_list(request):
     products = Product.objects.all()
     search_query = request.GET.get('search', '')
@@ -54,6 +72,7 @@ def product_list(request):
     }
     return render(request, 'inventory/product_list.html', context)
 
+@role_required(*STOCK_ROLES)
 def product_create(request):
     if request.method == 'POST':
         form = ProductForm(request.POST)
@@ -65,6 +84,7 @@ def product_create(request):
         form = ProductForm()
     return render(request, 'inventory/product_form.html', {'form': form, 'title': 'Add Product'})
 
+@role_required(*STOCK_ROLES)
 def product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
@@ -77,6 +97,7 @@ def product_edit(request, pk):
         form = ProductForm(instance=product)
     return render(request, 'inventory/product_form.html', {'form': form, 'title': 'Edit Product'})
 
+@role_required(*STOCK_ROLES)
 def product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     
@@ -104,10 +125,12 @@ def product_delete(request, pk):
     return render(request, 'inventory/product_confirm_delete.html', context)
 
 # Suppliers
+@role_required(*VIEW_ROLES)
 def supplier_list(request):
     suppliers = Supplier.objects.all()
     return render(request, 'inventory/supplier_list.html', {'suppliers': suppliers})
 
+@role_required(*STOCK_ROLES)
 def supplier_create(request):
     if request.method == 'POST':
         form = SupplierForm(request.POST)
@@ -119,6 +142,7 @@ def supplier_create(request):
         form = SupplierForm()
     return render(request, 'inventory/supplier_form.html', {'form': form, 'title': 'Add Supplier'})
 
+@role_required(*VIEW_ROLES)
 def product_export_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="products.csv"'
@@ -134,6 +158,7 @@ def product_export_csv(request):
 
     return response
 
+@role_required(*STOCK_ROLES)
 def product_import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         csv_file = request.FILES['csv_file']

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Delivery - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1><i class="bi bi-truck"></i> Delivery #{{ receipt.pk }}</h1>
+    <div class="action-bar">
+        <a href="{% url 'inventory:receipt_list' %}" class="btn btn-outline-secondary btn-sm">All deliveries</a>
+        {% if can_edit and receipt.is_editable %}
+        <a href="{% url 'inventory:receipt_confirm' receipt.pk %}" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Confirm &amp; add to stock</a>
+        <a href="{% url 'inventory:receipt_cancel' receipt.pk %}" class="btn btn-outline-danger btn-sm">Cancel</a>
+        {% endif %}
+    </div>
+</div>
+<p class="text-muted">
+    {{ receipt.supplier.name|default:"Supplier not recorded" }} &middot; {{ receipt.location.name }}
+    {% if receipt.invoice_number %}&middot; Invoice {{ receipt.invoice_number }}{% endif %}
+    {% if receipt.status == 'confirmed' %}<span class="pill pill-ok">CONFIRMED {{ receipt.confirmed_at|date:"d M Y H:i" }}</span>
+    {% elif receipt.status == 'cancelled' %}<span class="pill pill-muted">CANCELLED</span>
+    {% else %}<span class="pill pill-warn">DRAFT &mdash; stock not yet updated</span>{% endif %}
+</p>
+
+<div class="table-card">
+    <div class="table-header"><h3>What arrived</h3>
+        <span class="text-muted" style="font-size:0.85rem;">Total {{ receipt.total_received|floatformat:2 }} &middot; KES {{ receipt.total_cost|floatformat:0 }}</span></div>
+    <div class="table-body">
+    <table class="table mb-0">
+        <thead><tr><th>Product</th><th>Ordered</th><th>Received</th><th>Rejected</th><th>Unit cost</th><th>Batch</th><th>Expires</th></tr></thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.product.name }}</td>
+                <td>{{ line.quantity_ordered|floatformat:2 }}</td>
+                <td class="qty-in">{{ line.quantity_received|floatformat:2 }}</td>
+                <td>{% if line.quantity_rejected %}<span class="qty-out">{{ line.quantity_rejected|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+                <td>KES {{ line.unit_cost|floatformat:2 }}</td>
+                <td>{{ line.batch_number|default:"—" }}</td>
+                <td>{% if line.expiry_date %}{{ line.expiry_date|date:"d M Y" }}{% else %}—{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="empty-note">Nothing added yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+{% if can_edit and receipt.is_editable %}
+<div class="card">
+    <div class="card-header">Add a line</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% if line_form.non_field_errors %}<div class="alert alert-danger">{{ line_form.non_field_errors }}</div>{% endif %}
+            <div class="row">
+                {% for field in line_form %}
+                <div class="col-md-4 mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add line</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Control - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h1><i class="bi bi-box-seam"></i> Stock Control</h1>
+    {% if can_edit %}
+    <div class="action-bar">
+        <a href="{% url 'inventory:receipt_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-truck"></i> Receive Stock</a>
+        <a href="{% url 'inventory:transfer_create' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left-right"></i> Transfer</a>
+        <a href="{% url 'inventory:count_start' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-clipboard-check"></i> Stock Count</a>
+    </div>
+    {% endif %}
+</div>
+<p class="text-muted mb-3">{{ today|date:"l, d F Y" }}</p>
+
+<div class="kpi-grid">
+    <div class="kpi-card info">
+        <div class="kpi-label">Stock Value</div>
+        <div class="kpi-value">KES {{ stock_value|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ total_products }} active product{{ total_products|pluralize }}</div>
+    </div>
+    <div class="kpi-card ok">
+        <div class="kpi-label">Healthy Stock</div>
+        <div class="kpi-value">{{ healthy_count }}</div>
+        <div class="kpi-sub">above reorder level</div>
+    </div>
+    <div class="kpi-card warn">
+        <div class="kpi-label">Low Stock</div>
+        <div class="kpi-value">{{ low_stock|length }}</div>
+        <div class="kpi-sub">need reordering</div>
+    </div>
+    <div class="kpi-card danger">
+        <div class="kpi-label">Out of Stock</div>
+        <div class="kpi-value">{{ out_of_stock|length }}</div>
+        <div class="kpi-sub">nothing on hand</div>
+    </div>
+    <div class="kpi-card danger">
+        <div class="kpi-label">Expired</div>
+        <div class="kpi-value">{{ expired|length }}</div>
+        <div class="kpi-sub">still on the shelf</div>
+    </div>
+    <div class="kpi-card warn">
+        <div class="kpi-label">Expiring soon</div>
+        <div class="kpi-value">{{ expiring_soon|length }}</div>
+        <div class="kpi-sub">within {{ expiry_horizon }} days</div>
+    </div>
+    <div class="kpi-card ok">
+        <div class="kpi-label">Received today</div>
+        <div class="kpi-value">{{ received_today|floatformat:0 }}</div>
+    </div>
+    <div class="kpi-card info">
+        <div class="kpi-label">Sold today</div>
+        <div class="kpi-value">{{ sold_today|floatformat:0 }}</div>
+    </div>
+</div>
+
+{% if pending_receipts or pending_transfers or open_counts %}
+<div class="table-card">
+    <div class="table-header"><h3><i class="bi bi-hourglass-split"></i> Waiting on you</h3></div>
+    <div class="table-body">
+        <table class="table mb-0">
+            <tbody>
+                {% for r in pending_receipts %}
+                <tr>
+                    <td><span class="pill pill-info">DELIVERY</span></td>
+                    <td>{{ r.supplier.name|default:"Unrecorded supplier" }} &middot; {{ r.location.name }}</td>
+                    <td class="text-end"><a href="{% url 'inventory:receipt_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+                {% endfor %}
+                {% for t in pending_transfers %}
+                <tr>
+                    <td><span class="pill pill-warn">{{ t.get_status_display|upper }}</span></td>
+                    <td>{{ t.quantity|floatformat:0 }} x {{ t.product.name }} &middot; {{ t.source.name }} &rarr; {{ t.destination.name }}</td>
+                    <td class="text-end"><a href="{% url 'inventory:transfer_list' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+                {% endfor %}
+                {% for c in open_counts %}
+                <tr>
+                    <td><span class="pill pill-muted">{{ c.get_status_display|upper }}</span></td>
+                    <td>Stock count at {{ c.location.name }}</td>
+                    <td class="text-end"><a href="{% url 'inventory:count_detail' c.pk %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="two-col">
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="bi bi-exclamation-triangle"></i> Reorder now</h3>
+            <a href="{% url 'inventory:product_list' %}" style="font-size:0.85rem; color:var(--primary);">All products &rarr;</a>
+        </div>
+        <div class="table-body">
+            {% if low_stock or out_of_stock %}
+            <table class="table mb-0">
+                <thead><tr><th>Product</th><th>On hand</th><th>Minimum</th><th class="text-end">Order</th></tr></thead>
+                <tbody>
+                    {% for p in out_of_stock %}
+                    <tr>
+                        <td>{{ p.name }} <span class="pill pill-danger">OUT</span></td>
+                        <td class="qty-out">0 {{ p.get_unit_display|lower }}</td>
+                        <td>{{ p.effective_reorder_level|floatformat:0 }}</td>
+                        <td class="text-end"><strong>{{ p.recommended_order_quantity|floatformat:0 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                    {% for p in low_stock %}
+                    <tr>
+                        <td>{{ p.name }} <span class="pill pill-warn">LOW</span></td>
+                        <td>{{ p.quantity|floatformat:0 }} {{ p.get_unit_display|lower }}</td>
+                        <td>{{ p.effective_reorder_level|floatformat:0 }}</td>
+                        <td class="text-end"><strong>{{ p.recommended_order_quantity|floatformat:0 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-note">Every product is above its reorder level.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header"><h3><i class="bi bi-calendar-x"></i> Expiry watch</h3></div>
+        <div class="table-body">
+            {% if expired or expiring_soon %}
+            <table class="table mb-0">
+                <thead><tr><th>Product</th><th>Batch</th><th>Expires</th><th class="text-end">Qty</th></tr></thead>
+                <tbody>
+                    {% for lv in expired %}
+                    <tr>
+                        <td>{{ lv.product.name }}</td>
+                        <td>{{ lv.batch.batch_number|default:"—" }}</td>
+                        <td><span class="pill pill-danger">EXPIRED {{ lv.batch.expiry_date|date:"d M" }}</span></td>
+                        <td class="text-end">{{ lv.quantity|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for lv in expiring_soon %}
+                    <tr>
+                        <td>{{ lv.product.name }}</td>
+                        <td>{{ lv.batch.batch_number|default:"—" }}</td>
+                        <td><span class="pill pill-warn">{{ lv.batch.expiry_date|date:"d M Y" }}</span></td>
+                        <td class="text-end">{{ lv.quantity|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-note">Nothing expiring in the next {{ expiry_horizon }} days.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="table-card">
+        <div class="table-header"><h3><i class="bi bi-graph-up-arrow"></i> Moving fastest (30 days)</h3></div>
+        <div class="table-body">
+            {% if fast_moving %}
+            <table class="table mb-0">
+                <tbody>
+                    {% for p, sold in fast_moving %}
+                    <tr><td>{{ p.name }}</td><td class="text-end">{{ sold|floatformat:0 }} sold</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}<p class="empty-note">No sales recorded in the last 30 days.</p>{% endif %}
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header"><h3><i class="bi bi-hourglass"></i> Not moving (30 days)</h3></div>
+        <div class="table-body">
+            {% if slow_moving %}
+            <table class="table mb-0">
+                <tbody>
+                    {% for p in slow_moving %}
+                    <tr>
+                        <td>{{ p.name }}</td>
+                        <td class="text-end text-muted">{{ p.quantity|floatformat:0 }} sitting &middot; KES {{ p.stock_value|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}<p class="empty-note">Everything has moved recently.</p>{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-clock-history"></i> Recent stock activity</h3>
+        <div class="d-flex gap-2">
+            <a href="{% url 'inventory:stock_by_location' %}" style="font-size:0.85rem; color:var(--primary);">By location</a>
+            <a href="{% url 'inventory:movement_history' %}" style="font-size:0.85rem; color:var(--primary);">Full history &rarr;</a>
+        </div>
+    </div>
+    <div class="table-body">
+        {% if recent_movements %}
+        <table class="table mb-0">
+            <thead><tr><th>When</th><th>Product</th><th>Location</th><th>Change</th><th>Type</th><th>By</th></tr></thead>
+            <tbody>
+                {% for m in recent_movements %}
+                <tr>
+                    <td class="text-muted" style="white-space:nowrap;">{{ m.created_at|date:"d M H:i" }}</td>
+                    <td>{{ m.product.name }}</td>
+                    <td>{{ m.location.name }}</td>
+                    <td class="{% if m.is_increase %}qty-in{% else %}qty-out{% endif %}">
+                        {% if m.is_increase %}+{% endif %}{{ m.quantity_delta|floatformat:0 }}
+                        <span class="text-muted" style="font-weight:400;">({{ m.quantity_before|floatformat:0 }} &rarr; {{ m.quantity_after|floatformat:0 }})</span>
+                    </td>
+                    <td><span class="pill pill-muted">{{ m.get_movement_type_display }}</span></td>
+                    <td class="text-muted">{{ m.user.username|default:"system" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">No stock activity recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

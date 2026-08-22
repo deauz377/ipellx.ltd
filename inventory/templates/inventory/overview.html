@@ -8,6 +8,11 @@
         <h1><i class="bi bi-box-seam"></i> Inventory Overview</h1>
     </div>
     <div class="col-md-4 text-end">
+        {% if user.role != 'SALES_STAFF' %}
+        <a href="{% url 'inventory:command_centre' %}" class="btn btn-outline-primary">
+            <i class="bi bi-boxes"></i> Stock Control
+        </a>
+        {% endif %}
         <a href="{% url 'inventory:product_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add Product
         </a>
@@ -39,7 +44,7 @@
     </div>
     <div class="col-md-6 col-lg-3">
         <div class="stat-card">
-            <div class="number">KES {{ total_stock_value }}</div>
+            <div class="number">KES {{ total_stock_value|floatformat:0 }}</div>
             <div class="label">Stock Value</div>
             <i class="bi bi-cash-coin" style="font-size: 2rem; color: var(--warning); margin-top: 10px;"></i>
         </div>

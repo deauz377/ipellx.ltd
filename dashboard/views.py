@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
-from django.db.models import Sum, F, Count, Q, DecimalField
+from django.db.models import Sum, F, Q, DecimalField
 from django.db.models.functions import TruncDate, TruncMonth
 from django.urls import reverse
 from django.utils import timezone
@@ -13,6 +13,7 @@ from sales.models import Invoice, InvoiceItem, DailySalesEntry
 from sales.models import Order
 from sales.models import Payment, MpesaTransaction
 from inventory.models import Product
+from inventory.services import low_stock_queryset, stock_value
 from expenses.models import Expense
 from customers.models import Customer
 from core.forms import TeamMemberCreationForm
@@ -52,7 +53,9 @@ def overview(request):
     .get('total') or 0
 )
     total_products = Product.objects.count()
-    low_stock_count = Product.objects.filter(quantity__lte=F('minimum_stock')).count()
+    # Shared with the Inventory, Stock Control and CEO screens so every user
+    # sees the same count for the same business.
+    low_stock_count = low_stock_queryset(request.user.tenant).count()
 
     expenses_today = Expense.objects.filter(date=today).aggregate(Sum('amount'))['amount__sum'] or 0
     expenses_month = Expense.objects.filter(
@@ -132,9 +135,7 @@ def overview(request):
     pending_mpesa = MpesaTransaction.objects.filter(status='pending').select_related('invoice__customer').order_by('-created_at')[:5]
 
     # Alerts for the notification bell (low stock) and envelope (unpaid invoices)
-    low_stock_products = Product.objects.filter(
-        quantity__lte=F('minimum_stock')
-    ).order_by('quantity')[:8]
+    low_stock_products = low_stock_queryset(request.user.tenant)[:8]
 
     unpaid_invoices = Invoice.objects.filter(
         paid__lt=F('total')
@@ -146,7 +147,7 @@ def overview(request):
         'sales_today': sales_today,
         'sales_month': sales_month,
         'sales_last_month': sales_last_month,
-        'stock_value': purchase_total,
+        'total_purchases': purchase_total,
         'total_products': total_products,
         'low_stock_count': low_stock_count,
         'expenses_today': expenses_today,
@@ -380,11 +381,8 @@ def ceo_dashboard(request):
     outstanding_supplier_payments = (payable['t'] or 0) - (payable['p'] or 0)
 
     # --- Inventory ---
-    products = Product.objects.filter(tenant=tenant)
-    inventory_value = products.aggregate(
-        v=Sum(F('cost_price') * F('quantity'), output_field=DecimalField())
-    )['v'] or 0
-    low_stock_qs = products.filter(quantity__lte=F('minimum_stock')).order_by('quantity')
+    inventory_value = stock_value(tenant)
+    low_stock_qs = low_stock_queryset(tenant)
     low_stock_count = low_stock_qs.count()
     low_stock_products = low_stock_qs[:8]
 

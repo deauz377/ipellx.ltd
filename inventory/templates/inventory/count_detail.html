@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Stock Count - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1><i class="bi bi-clipboard-check"></i> Count #{{ count.pk }}</h1>
+    <div class="action-bar">
+        <a href="{% url 'inventory:count_list' %}" class="btn btn-outline-secondary btn-sm">All counts</a>
+        {% if can_edit and count.status == 'draft' %}
+        <form method="post" action="{% url 'inventory:count_action' count.pk 'submit' %}">{% csrf_token %}
+            <button class="btn btn-primary btn-sm">Submit for approval</button></form>
+        {% elif can_edit and count.status == 'submitted' %}
+        <form method="post" action="{% url 'inventory:count_action' count.pk 'approve' %}">{% csrf_token %}
+            <button class="btn btn-success btn-sm">Approve &amp; adjust stock</button></form>
+        <form method="post" action="{% url 'inventory:count_action' count.pk 'reject' %}">{% csrf_token %}
+            <input type="hidden" name="reason" value="Recount required">
+            <button class="btn btn-outline-danger btn-sm">Reject</button></form>
+        {% endif %}
+    </div>
+</div>
+
+<p class="text-muted">
+    {{ count.location.name }} &middot;
+    {% if count.status == 'approved' %}<span class="pill pill-ok">APPROVED {{ count.approved_at|date:"d M Y" }}</span>
+    {% elif count.status == 'rejected' %}<span class="pill pill-danger">REJECTED &mdash; {{ count.rejection_reason }}</span>
+    {% elif count.status == 'submitted' %}<span class="pill pill-warn">AWAITING APPROVAL &mdash; stock not yet changed</span>
+    {% else %}<span class="pill pill-muted">COUNTING &mdash; stock not yet changed</span>{% endif %}
+</p>
+
+<form method="post">
+{% csrf_token %}
+<div class="table-card"><div class="table-body">
+<table class="table mb-0">
+    <thead><tr><th>Product</th><th>System says</th><th>Actually found</th><th>Variance</th><th>Reason</th><th>Note</th></tr></thead>
+    <tbody>
+        {% for line in lines %}
+        <tr>
+            <td>{{ line.product.name }}</td>
+            <td>{{ line.system_quantity|floatformat:2 }}</td>
+            <td style="min-width:120px;">
+                {% if can_edit and count.is_editable %}
+                <input type="number" step="0.01" min="0" name="physical_{{ line.pk }}"
+                       value="{{ line.physical_quantity|default_if_none:'' }}" class="form-control form-control-sm">
+                {% else %}{{ line.physical_quantity|default_if_none:"—" }}{% endif %}
+            </td>
+            <td>
+                {% if line.is_counted %}
+                    <span class="{% if line.variance < 0 %}qty-out{% elif line.variance > 0 %}qty-in{% endif %}">
+                        {% if line.variance > 0 %}+{% endif %}{{ line.variance|floatformat:2 }}</span>
+                {% else %}<span class="text-muted">not counted</span>{% endif %}
+            </td>
+            <td style="min-width:150px;">
+                {% if can_edit and count.is_editable %}
+                <select name="reason_{{ line.pk }}" class="form-select form-select-sm">
+                    {% for value, label in reason_choices %}
+                    <option value="{{ value }}" {% if line.reason == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}{{ line.get_reason_display|default:"—" }}{% endif %}
+            </td>
+            <td style="min-width:150px;">
+                {% if can_edit and count.is_editable %}
+                <input type="text" name="note_{{ line.pk }}" value="{{ line.note }}" class="form-control form-control-sm">
+                {% else %}{{ line.note|default:"—" }}{% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-note">No products to count at this location.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div></div>
+
+{% if can_edit and count.is_editable %}
+<button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save count</button>
+<span class="text-muted" style="font-size:0.85rem; margin-left:8px;">
+    Saving records what you found. Stock only changes when the count is approved.
+</span>
+{% endif %}
+</form>
+{% endblock %}

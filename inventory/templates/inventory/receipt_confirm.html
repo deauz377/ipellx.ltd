@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Confirm Delivery - 14xlevel ERP{% endblock %}
+{% block extra_css %}{% include 'inventory/_stock_css.html' %}{% endblock %}
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-check-circle"></i> Confirm delivery</h1>
+<div class="card" style="max-width:640px;"><div class="card-body">
+    <p>Confirming adds this stock to <strong>{{ receipt.location.name }}</strong>. It cannot be undone by cancelling &mdash; a mistake afterwards is corrected with a stock count or a write-off, both of which leave a record.</p>
+    <table class="table">
+        <thead><tr><th>Product</th><th class="text-end">Adding</th></tr></thead>
+        <tbody>
+            {% for line in lines %}<tr><td>{{ line.product.name }}</td><td class="text-end qty-in">+{{ line.quantity_received|floatformat:2 }}</td></tr>{% endfor %}
+        </tbody>
+    </table>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Confirm and add to stock</button>
+        <a href="{% url 'inventory:receipt_detail' receipt.pk %}" class="btn btn-secondary">Back</a>
+    </form>
+</div></div>
+{% endblock %}
