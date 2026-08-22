@@ -639,7 +639,12 @@
             </li>
             {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'ACCOUNTANT' %}
             <li>
-                <a class="{% if request.resolver_match.app_name == 'accounting' %}active{% endif %}" href="{% url 'accounting:dashboard' %}">
+                <a class="{% if request.resolver_match.url_name == 'accountant_dashboard' %}active{% endif %}" href="{% url 'accounting:accountant_dashboard' %}">
+                    <i class="bi bi-calculator"></i> Finance Desk
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'accounting' and request.resolver_match.url_name != 'accountant_dashboard' %}active{% endif %}" href="{% url 'accounting:dashboard' %}">
                     <i class="bi bi-calculator"></i> Accounting
                 </a>
             </li>

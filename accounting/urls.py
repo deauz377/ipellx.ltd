@@ -45,6 +45,7 @@ urlpatterns = [
     path('budgets/create/', views.BudgetCreateView.as_view(), name='budget_create'),
     
     # Reports
+    path('finance/', views.accountant_dashboard, name='accountant_dashboard'),
     path('reports/trial-balance/', views.trial_balance_report, name='trial_balance'),
     path('reports/bank-reconciliation/', views.bank_reconciliation, name='bank_reconciliation'),
 

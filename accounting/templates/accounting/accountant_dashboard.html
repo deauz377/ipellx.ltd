@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Finance Desk - 14xlevel ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .kpi-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; align-items: flex-start; }
+    .kpi-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-right: 14px; flex-shrink: 0; }
+    .kpi-icon.primary { background-color: #E8F1F8; color: var(--primary); }
+    .kpi-icon.success { background-color: #D1FAE5; color: var(--success); }
+    .kpi-icon.warning { background-color: #FEF3C7; color: var(--warning); }
+    .kpi-icon.error   { background-color: #FEE2E2; color: var(--error); }
+    .kpi-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+    .kpi-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .table-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .table-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .table-body { overflow-x: auto; }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+
+    /* Ageing strip */
+    .ageing { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 18px 20px; }
+    .age-cell { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .age-cell .amt { font-size: 1.15rem; font-weight: 700; }
+    .age-cell .lbl { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
+    .age-cell .cnt { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+    .age-cell.warn   { border-color: rgba(245,158,11,0.5); }
+    .age-cell.danger { border-color: rgba(239,68,68,0.5); }
+    .age-cell.warn .amt   { color: var(--warning); }
+    .age-cell.danger .amt { color: var(--error); }
+
+    .empty-note { padding: 20px; margin: 0; color: var(--text-secondary); }
+    .attention-bar { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.35); color: #92400E; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; }
+    [data-theme="dark"] .attention-bar { color: #FCD34D; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h1><i class="bi bi-calculator"></i> Finance Desk</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'accounting:dashboard' %}" class="btn btn-outline-secondary btn-sm">Accounting</a>
+        <a href="{% url 'accounting:trial_balance' %}" class="btn btn-outline-secondary btn-sm">Trial Balance</a>
+        <a href="{% url 'payroll:dashboard' %}" class="btn btn-outline-secondary btn-sm">Payroll</a>
+    </div>
+</div>
+<p class="text-muted mb-3">{{ today|date:"l, d F Y" }}</p>
+
+{% if action_count %}
+<div class="attention-bar">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>{{ action_count }}</strong> item{{ action_count|pluralize }} need attention today &mdash;
+    {% if overdue_invoice_count %}{{ overdue_invoice_count }} overdue invoice{{ overdue_invoice_count|pluralize }}{% endif %}
+    {% if payables_bills_overdue %}{% if overdue_invoice_count %}, {% endif %}{{ payables_bills_overdue }} overdue bill{{ payables_bills_overdue|pluralize }}{% endif %}
+    {% if payroll_unpaid_count %}{% if overdue_invoice_count or payables_bills_overdue %}, {% endif %}{{ payroll_unpaid_count }} unpaid payslip{{ payroll_unpaid_count|pluralize }}{% endif %}.
+</div>
+{% endif %}
+
+<div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon warning"><i class="bi bi-arrow-down-left-circle"></i></div>
+        <div><div class="kpi-label">Owed to you</div>
+            <div class="kpi-value">KES {{ receivables_total|floatformat:0 }}</div>
+            <div class="kpi-sub">{{ receivables_count }} unpaid invoice{{ receivables_count|pluralize }}</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon error"><i class="bi bi-arrow-up-right-circle"></i></div>
+        <div><div class="kpi-label">You owe</div>
+            <div class="kpi-value">KES {{ payables_orders_total|add:payables_bills_total|floatformat:0 }}</div>
+            <div class="kpi-sub">{{ payables_orders_count }} purchase order{{ payables_orders_count|pluralize }}</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon success"><i class="bi bi-cash-stack"></i></div>
+        <div><div class="kpi-label">Received this month</div>
+            <div class="kpi-value">KES {{ cash_month_total|floatformat:0 }}</div>
+            <div class="kpi-sub">KES {{ cash_today_total|floatformat:0 }} today</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-receipt"></i></div>
+        <div><div class="kpi-label">Spent this month</div>
+            <div class="kpi-value">KES {{ expenses_month_total|floatformat:0 }}</div></div></div>
+
+    <div class="kpi-card"><div class="kpi-icon {% if payroll_unpaid_count %}warning{% else %}success{% endif %}"><i class="bi bi-people"></i></div>
+        <div><div class="kpi-label">Payroll to fund</div>
+            {% if payroll_upcoming %}
+            <div class="kpi-value">KES {{ payroll_upcoming.total_net|floatformat:0 }}</div>
+            <div class="kpi-sub">{{ payroll_upcoming.payroll_period.name }} &middot; pays {{ payroll_upcoming.payroll_period.payment_date|date:"d M" }}</div>
+            {% else %}<div class="kpi-value">&mdash;</div><div class="kpi-sub">No run scheduled</div>{% endif %}</div></div>
+
+    <div class="kpi-card"><div class="kpi-icon primary"><i class="bi bi-bank"></i></div>
+        <div><div class="kpi-label">Tax withheld this month</div>
+            <div class="kpi-value">KES {{ tax_withheld_month|floatformat:0 }}</div>
+            <div class="kpi-sub">KES {{ tax_withheld_year|floatformat:0 }} year to date</div></div></div>
+</div>
+
+<!-- Receivables ageing -->
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-hourglass-split"></i> Who owes you, by age</h3>
+        <span class="text-muted" style="font-size:0.85rem;">KES {{ receivables_overdue|floatformat:0 }} overdue</span>
+    </div>
+    <div class="ageing">
+        {% for bucket in receivables_buckets %}
+        <div class="age-cell {% if forloop.counter0 >= 3 %}danger{% elif forloop.counter0 >= 1 %}warn{% endif %}">
+            <div class="lbl">{{ bucket.label }}</div>
+            <div class="amt">KES {{ bucket.total|floatformat:0 }}</div>
+            <div class="cnt">{{ bucket.count }} invoice{{ bucket.count|pluralize }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="table-body">
+        {% if receivables_rows %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Invoice</th><th>Customer</th><th>Due</th><th>Overdue</th><th class="text-end">Outstanding</th></tr></thead>
+            <tbody>
+                {% for row in receivables_rows %}
+                <tr>
+                    <td><a href="{% url 'sales:invoice_detail' row.invoice.pk %}">#{{ row.invoice.pk }}</a></td>
+                    <td>{{ row.invoice.customer.name }}</td>
+                    <td>{{ row.due|date:"d M Y" }}</td>
+                    <td>{% if row.days_overdue > 0 %}<span class="badge badge-danger">{{ row.days_overdue }} day{{ row.days_overdue|pluralize }}</span>{% else %}<span class="text-muted">Not due</span>{% endif %}</td>
+                    <td class="text-end">KES {{ row.outstanding|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">Every invoice is paid in full.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="two-col">
+    <!-- Payables -->
+    <div class="table-card">
+        <div class="table-header"><h3><i class="bi bi-truck"></i> What you owe</h3></div>
+        <div class="table-body">
+            {% if payables_orders %}
+            <table class="table mb-0">
+                <thead><tr><th>Supplier</th><th>Ordered</th><th>Status</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>
+                    {% for order in payables_orders %}
+                    <tr>
+                        <td>{{ order.supplier.name|default:"—" }}</td>
+                        <td>{{ order.date|date:"d M Y" }}</td>
+                        <td>{{ order.get_status_display }}</td>
+                        <td class="text-end">KES {{ order.total|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-note">No outstanding purchase orders.</p>
+            {% endif %}
+            {% if payables_bills %}
+            <table class="table mb-0">
+                <thead><tr><th>Bill</th><th>Vendor</th><th>Due</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>
+                    {% for bill in payables_bills %}
+                    <tr>
+                        <td><a href="{% url 'accounting:bill_detail' bill.pk %}">{{ bill.bill_number }}</a></td>
+                        <td>{{ bill.vendor }}</td>
+                        <td>{{ bill.due_date|date:"d M Y" }}</td>
+                        <td class="text-end">KES {{ bill.total_amount|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cash in -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="bi bi-wallet2"></i> Money received this month</h3>
+        </div>
+        <div class="table-body">
+            {% if cash_by_method %}
+            <table class="table mb-0">
+                <thead><tr><th>Method</th><th>Payments</th><th class="text-end">Total</th></tr></thead>
+                <tbody>
+                    {% for row in cash_by_method %}
+                    <tr><td>{{ row.method }}</td><td>{{ row.count }}</td><td class="text-end">KES {{ row.total|floatformat:0 }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-note">No payments recorded this month.</p>
+            {% endif %}
+            {% if mpesa_pending_count %}
+            <div style="padding:14px 20px; border-top:1px solid var(--border); font-size:0.85rem; color:var(--text-secondary);">
+                <i class="bi bi-hourglass"></i>
+                {{ mpesa_pending_count }} M-Pesa payment{{ mpesa_pending_count|pluralize }} still awaiting confirmation
+                (KES {{ mpesa_pending_total|floatformat:0 }}) &mdash; not counted above, since it has not arrived yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="two-col">
+    <!-- Payroll -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="bi bi-people"></i> Payroll</h3>
+            <a href="{% url 'payroll:dashboard' %}" style="font-size:0.85rem; color:var(--primary);">Open payroll &rarr;</a>
+        </div>
+        <div class="table-body">
+            <table class="table mb-0">
+                <tbody>
+                    <tr><td>Next run to fund</td>
+                        <td class="text-end">
+                            {% if payroll_upcoming %}<strong>KES {{ payroll_upcoming.total_net|floatformat:0 }}</strong>
+                            <div class="text-muted" style="font-size:0.8rem;">{{ payroll_upcoming.get_status_display }} &middot; {{ payroll_upcoming.payroll_period.name }}</div>
+                            {% else %}<span class="text-muted">None scheduled</span>{% endif %}
+                        </td></tr>
+                    <tr><td>Processed but unpaid</td>
+                        <td class="text-end">
+                            {% if payroll_unpaid_count %}<strong class="text-danger">KES {{ payroll_unpaid_total|floatformat:0 }}</strong>
+                            <div class="text-muted" style="font-size:0.8rem;">{{ payroll_unpaid_count }} payslip{{ payroll_unpaid_count|pluralize }}</div>
+                            {% else %}<span class="text-muted">Nothing outstanding</span>{% endif %}
+                        </td></tr>
+                    <tr><td>Last run paid</td>
+                        <td class="text-end">
+                            {% if payroll_latest_paid %}KES {{ payroll_latest_paid.total_net|floatformat:0 }}
+                            <div class="text-muted" style="font-size:0.8rem;">{{ payroll_latest_paid.payroll_period.name }}</div>
+                            {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+                        </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tax -->
+    <div class="table-card">
+        <div class="table-header"><h3><i class="bi bi-bank"></i> Statutory deductions withheld</h3></div>
+        <div class="table-body">
+            {% if tax_by_type %}
+            <table class="table mb-0">
+                <thead><tr><th>Deduction</th><th class="text-end">This month</th></tr></thead>
+                <tbody>
+                    {% for row in tax_by_type %}
+                    <tr><td>{{ row.name }}</td><td class="text-end">KES {{ row.total|floatformat:0 }}</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold"><td>Total payable onward</td><td class="text-end">KES {{ tax_withheld_month|floatformat:0 }}</td></tr>
+                </tfoot>
+            </table>
+            {% else %}
+            <p class="empty-note">
+                Nothing withheld yet this month. PAYE, NHIF and NSSF appear here once a payroll
+                run is processed &mdash; they are set up as deductions in
+                <a href="{% url 'payroll:deduction_list' %}">Payroll &rsaquo; Deductions</a>.
+            </p>
+            {% endif %}
+            {% if tax_rates %}
+            <div style="padding:14px 20px; border-top:1px solid var(--border);">
+                <div class="text-muted" style="font-size:0.8rem; margin-bottom:6px;">Configured tax rates</div>
+                {% for rate in tax_rates %}
+                <span class="badge badge-info">{{ rate.tax_type }} {{ rate.tax_rate }}%</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Spending breakdown -->
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="bi bi-pie-chart"></i> Where the money went this month</h3>
+        <a href="{% url 'expenses:expense_list' %}" style="font-size:0.85rem; color:var(--primary);">All expenses &rarr;</a>
+    </div>
+    <div class="table-body">
+        {% if expenses_by_category %}
+        <table class="table mb-0">
+            <thead><tr><th>Category</th><th class="text-end">Amount</th></tr></thead>
+            <tbody>
+                {% for row in expenses_by_category %}
+                <tr><td>{{ row.category }}</td><td class="text-end">KES {{ row.total|floatformat:0 }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-note">No expenses recorded this month.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

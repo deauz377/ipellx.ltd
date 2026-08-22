@@ -321,6 +321,18 @@ class BudgetCreateView(ManagerRequiredMixin, LoginRequiredMixin, CreateView):
 
 
 @role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
+def accountant_dashboard(request):
+    """The finance work queue: what is owed, what is due, what is unfunded.
+
+    Separate from accounting_dashboard, which is a totals summary. Every card
+    here is something to act on rather than a number to admire -- "7 invoices
+    over 30 days late" is a task; "KES 240,000 receivable" is trivia.
+    """
+    from .accountant_dashboard import build_context
+    return render(request, 'accounting/accountant_dashboard.html', build_context(request))
+
+
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
 def trial_balance_report(request):
     """Generate trial balance report"""
     tenant = request.user.tenant
