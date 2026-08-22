@@ -25,6 +25,7 @@ from .forms import (
     OrderForm, OrderItemForm, QuickSaleForm, QuickSaleItemFormSet, DailySalesEntryForm, ProfitEntryForm,
 )
 from inventory.models import Product
+from inventory.services import StockError, issue_stock, return_stock
 from customers.models import Customer
 from .utils import compute_daily_profit, send_payment_request_reminder
 from .whatsapp import send_supplier_order_alert, send_payment_request_whatsapp
@@ -120,9 +121,15 @@ def quick_sale(request):
                             invoice=invoice, product=l['product'], qty=l['qty'], price=l['price'],
                             cost_price=l['product'].cost_price, sale_channel=l['channel'],
                         )
-                        product = l['product']
-                        product.quantity = F('quantity') - l['qty']
-                        product.save(update_fields=['quantity'])
+                        # Stock leaves through inventory.services, never by
+                        # assigning quantity here: the service consumes batches
+                        # FEFO, refuses to go negative, and records who sold
+                        # what and when.
+                        issue_stock(
+                            product=l['product'], quantity=l['qty'], user=request.user,
+                            reason='Quick sale', reference_type='invoice',
+                            reference_id=invoice.pk,
+                        )
 
                     amount_received = form.cleaned_data.get('amount_received')
                     paid_amount = amount_received if amount_received is not None else total
@@ -355,9 +362,11 @@ def invoice_delete(request, pk):
             # Restore the stock this invoice took out, since deleting the
             # sale record shouldn't leave inventory permanently short.
             for item in invoice.items.select_related('product'):
-                product = item.product
-                product.quantity = F('quantity') + item.qty
-                product.save(update_fields=['quantity'])
+                return_stock(
+                    product=item.product, quantity=item.qty, user=request.user,
+                    reason=f'Invoice #{invoice.pk} deleted',
+                    reference_type='invoice', reference_id=invoice.pk,
+                )
             invoice.delete()
         # After delete, not before -- otherwise this invoice's own
         # outstanding balance would still be counted in the recompute.
@@ -482,9 +491,23 @@ def invoice_item_add(request, invoice_pk):
             item = form.save(commit=False)
             item.invoice = invoice
             item.cost_price = item.product.cost_price
-            item.save()
-            messages.success(request, 'Item added to invoice!')
-            return redirect('sales:invoice_detail', pk=invoice.pk)
+            try:
+                # This deduction is new. Previously adding a line to an invoice
+                # sold goods without touching stock, while deleting the invoice
+                # put stock back -- so every delete invented inventory. The item
+                # and the deduction now succeed or fail together.
+                with transaction.atomic():
+                    item.save()
+                    issue_stock(
+                        product=item.product, quantity=item.qty, user=request.user,
+                        reason='Invoice item', reference_type='invoice',
+                        reference_id=invoice.pk,
+                    )
+            except StockError as exc:
+                form.add_error(None, str(exc))
+            else:
+                messages.success(request, 'Item added to invoice!')
+                return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceItemForm()
     return render(request, 'sales/invoice_item_form.html', {'form': form, 'invoice': invoice})
