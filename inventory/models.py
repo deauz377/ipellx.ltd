@@ -293,3 +293,11 @@ class StockMovement(TenantModel):
     @property
     def is_increase(self):
         return self.quantity_delta > 0
+
+
+# Receiving, transfers and stock counts live in their own module to keep this
+# file readable; re-exported here so `from inventory.models import ...` and
+# Django's app registry both behave as if they were declared inline.
+from .workflow_models import (  # noqa: E402,F401  (import position is deliberate)
+    GoodsReceipt, GoodsReceiptLine, StockCount, StockCountLine, StockTransfer,
+)
