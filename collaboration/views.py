@@ -8,7 +8,9 @@ from django.utils import timezone
 from tenants.decorators import role_required
 from tenants.models import User
 
-from .forms import MeetingForm, MessageForm, TaskCompleteForm, TaskForm, team_queryset
+from .forms import (
+    MeetingForm, MessageForm, ReportToCeoForm, TaskCompleteForm, TaskForm, team_queryset,
+)
 from .models import Meeting, Message, Task
 
 # Who may hand out work. Matches how Approvals and HR already treat
@@ -268,3 +270,102 @@ def ceo_portal_context(request):
         'portal_upcoming_meetings': upcoming_meetings,
         'portal_unread_total': Message.unread_count_for(request.user),
     }
+
+
+# --------------------------------------------------------------------------
+# Reporting up to the CEO
+# --------------------------------------------------------------------------
+
+def _owners_of(tenant):
+    """The people a report goes to. Resolved from the sender's own tenant --
+    never from a submitted id, so there is nothing to tamper with."""
+    if tenant is None:
+        return User.objects.none()
+    return User.objects.filter(tenant=tenant, role='OWNER').order_by('pk')
+
+
+def _finance_snapshot(request):
+    """Pre-filled figures for a finance report.
+
+    Imported locally so collaboration does not take a hard dependency on
+    accounting -- the same local-import idiom dashboard.views uses when it
+    reaches across apps. Returns '' if anything goes wrong, because a failed
+    pre-fill should still leave a usable blank report form.
+    """
+    try:
+        from accounting.accountant_dashboard import build_context
+    except ImportError:
+        return ''
+
+    try:
+        figures = build_context(request)
+    except Exception:
+        return ''
+
+    lines = [
+        f"Finance summary as at {figures['today']:%d %B %Y}",
+        '',
+        f"Owed to us:            KES {figures['receivables_total']:,.0f} "
+        f"({figures['receivables_count']} unpaid invoice(s))",
+        f"  of which overdue:    KES {figures['receivables_overdue']:,.0f}",
+        f"We owe:                KES {figures['payables_orders_total'] + figures['payables_bills_total']:,.0f}",
+        f"Received this month:   KES {figures['cash_month_total']:,.0f}",
+        f"Spent this month:      KES {figures['expenses_month_total']:,.0f}",
+        f"Tax withheld (month):  KES {figures['tax_withheld_month']:,.0f}",
+    ]
+    if figures.get('payroll_upcoming'):
+        run = figures['payroll_upcoming']
+        lines.append(
+            f"Payroll to fund:       KES {run.total_net:,.0f} "
+            f"({run.payroll_period.name}, pays {run.payroll_period.payment_date:%d %b})"
+        )
+    if figures['receivables_buckets']:
+        lines += ['', 'Receivables by age:']
+        for bucket in figures['receivables_buckets']:
+            lines.append(f"  {bucket['label']:<14} KES {bucket['total']:,.0f} ({bucket['count']})")
+    lines += ['', 'Notes:', '']
+    return "\n".join(lines)
+
+
+@login_required
+def report_to_ceo(request):
+    """Send a written report to the business owner.
+
+    Delivered as a Message so it lands in the CEO's existing inbox and drives
+    the same unread badge -- a separate reports table would have needed its own
+    notification path and its own place to be forgotten.
+    """
+    owners = list(_owners_of(request.user.tenant))
+    if request.user.role == 'OWNER':
+        # The CEO reporting to themselves is not a thing.
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ReportToCeoForm(request.POST)
+        if form.is_valid():
+            if not owners:
+                django_messages.error(
+                    request, 'This business has no CEO account to report to.',
+                )
+                return redirect('collaboration:my_work')
+            for owner in owners:
+                Message.objects.create(
+                    tenant=request.user.tenant, sender=request.user, recipient=owner,
+                    kind='report', subject=form.cleaned_data['subject'],
+                    body=form.cleaned_data['body'],
+                )
+            django_messages.success(request, 'Report sent to the CEO.')
+            return redirect('collaboration:conversation', user_id=owners[0].pk)
+    else:
+        initial = {}
+        if request.GET.get('about') == 'finance':
+            initial = {
+                'subject': f'Finance summary - {timezone.localdate():%B %Y}',
+                'body': _finance_snapshot(request),
+            }
+        form = ReportToCeoForm(initial=initial)
+
+    return render(request, 'collaboration/report_to_ceo.html', {
+        'form': form,
+        'owners': owners,
+    })

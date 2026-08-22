@@ -124,3 +124,35 @@ class TaskCompleteForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Anything to report back? (optional)'}),
     )
+
+
+class ReportToCeoForm(forms.Form):
+    """Submit a written report to the business owner.
+
+    The recipient is never a form field -- it is resolved in the view from the
+    sender's own tenant, so there is no owner id to tamper with.
+    """
+    subject = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 'placeholder': 'e.g. Finance summary for August',
+        }),
+    )
+    body = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 'rows': 12,
+            'placeholder': 'What the CEO needs to know...',
+        }),
+    )
+
+    def clean_subject(self):
+        subject = self.cleaned_data.get('subject', '').strip()
+        if not subject:
+            raise forms.ValidationError('Give the report a subject.')
+        return subject
+
+    def clean_body(self):
+        body = self.cleaned_data.get('body', '').strip()
+        if not body:
+            raise forms.ValidationError('The report cannot be empty.')
+        return body

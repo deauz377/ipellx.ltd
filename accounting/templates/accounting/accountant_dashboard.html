@@ -45,6 +45,11 @@
         <a href="{% url 'accounting:dashboard' %}" class="btn btn-outline-secondary btn-sm">Accounting</a>
         <a href="{% url 'accounting:trial_balance' %}" class="btn btn-outline-secondary btn-sm">Trial Balance</a>
         <a href="{% url 'payroll:dashboard' %}" class="btn btn-outline-secondary btn-sm">Payroll</a>
+        {% if user.role != 'OWNER' %}
+        <a href="{% url 'collaboration:report_to_ceo' %}?about=finance" class="btn btn-primary btn-sm">
+            <i class="bi bi-send"></i> Report to CEO
+        </a>
+        {% endif %}
     </div>
 </div>
 <p class="text-muted mb-3">{{ today|date:"l, d F Y" }}</p>

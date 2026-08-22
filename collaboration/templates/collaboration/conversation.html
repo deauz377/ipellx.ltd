@@ -13,10 +13,18 @@
 <div class="table-card">
     <div class="thread" id="thread">
         {% for m in thread %}
+            {% if m.is_report %}
+            <div class="report-card {% if m.sender_id == user.pk %}mine{% endif %}">
+                <div class="report-head"><i class="bi bi-file-earmark-text"></i> {{ m.subject }}</div>
+                <pre class="report-body">{{ m.body }}</pre>
+                <span class="meta">{{ m.sender.username }} &middot; {{ m.sent_at|date:"d M Y, H:i" }}</span>
+            </div>
+            {% else %}
             <div class="bubble {% if m.sender_id == user.pk %}mine{% else %}theirs{% endif %}">
                 {{ m.body|linebreaksbr }}
                 <span class="meta">{{ m.sent_at|date:"d M Y, H:i" }}</span>
             </div>
+            {% endif %}
         {% empty %}
             <p class="empty-note">No messages yet — say something.</p>
         {% endfor %}

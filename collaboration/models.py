@@ -126,6 +126,16 @@ class Message(TenantModel):
     which is all a 1:1 thread needs and one fewer table to keep consistent.
     """
 
+    KIND_CHOICES = [
+        ('chat', 'Message'),
+        ('report', 'Report'),
+    ]
+
+    # A report is still a Message -- same delivery, same unread badge, same
+    # thread -- but carries a subject and renders as a titled card rather than
+    # a chat bubble, so a formal submission to the CEO is not buried in banter.
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default='chat')
+    subject = models.CharField(max_length=150, blank=True)
     sender = models.ForeignKey(
         'tenants.User', on_delete=models.CASCADE, related_name='messages_sent',
     )
@@ -145,6 +155,10 @@ class Message(TenantModel):
     @property
     def is_unread(self):
         return self.read_at is None
+
+    @property
+    def is_report(self):
+        return self.kind == 'report'
 
     def mark_read(self):
         if self.read_at is None:
