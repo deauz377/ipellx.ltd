@@ -1,4 +1,4 @@
-{"buildCommand":"python manage.py migrate",
+{"buildCommand":"pip install -r requirements.txt && python manage.py migrate",
   "framework": null,
   "functions": {
     "api/index.py": {
@@ -9,6 +9,6 @@
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "crons": [
-    { "path": "/cron/send-payment-reminders/", "schedule": "0 7 * * *" }
+    { "path": "/cron/send-payment-reminders/", "schedule": "0 7 7 * *" }
   ]
 }
