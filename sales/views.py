@@ -18,14 +18,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from .models import (
     Invoice, InvoiceItem, Payment, PaymentRequest, PaymentAuditLog, Order, OrderItem,
-    DailySalesEntry, ProfitEntry, MpesaTransaction,
+    DailySalesEntry, ProfitEntry, MpesaTransaction, BusinessDay,
 )
 from .forms import (
     InvoiceForm, InvoiceItemForm, PaymentForm, PaymentRequestForm, PaymentRefundForm,
     OrderForm, OrderItemForm, QuickSaleForm, QuickSaleItemFormSet, DailySalesEntryForm, ProfitEntryForm,
 )
 from inventory.models import Product
-from inventory.services import StockError, issue_stock, return_stock
+from inventory.services import (
+    StockError, available_quantity, issue_stock, return_stock,
+)
 from customers.models import Customer
 from .utils import compute_daily_profit, send_payment_request_reminder
 from .whatsapp import send_supplier_order_alert, send_payment_request_whatsapp
@@ -33,8 +35,29 @@ from .sms import send_sms
 from . import mpesa
 from django.utils.dateparse import parse_date
 from tenants.decorators import role_required
+from .reporting import business_day_summary, json_safe, product_performance, product_totals
 
 logger = logging.getLogger(__name__)
+
+
+def _reporting_period(request):
+    """Resolve the business-history date filter without trusting client dates."""
+    today = timezone.localdate()
+    period = request.GET.get('period', 'today')
+    custom_start = parse_date(request.GET.get('start', ''))
+    custom_end = parse_date(request.GET.get('end', ''))
+    if period == 'yesterday':
+        return period, today - timedelta(days=1), today - timedelta(days=1)
+    if period == 'week':
+        return period, today - timedelta(days=today.weekday()), today
+    if period == 'month':
+        return period, today.replace(day=1), today
+    if period == 'previous_month':
+        end = today.replace(day=1) - timedelta(days=1)
+        return period, end.replace(day=1), end
+    if period == 'custom' and custom_start and custom_end and custom_start <= custom_end:
+        return period, custom_start, custom_end
+    return 'today', today, today
 
 @login_required
 def sales_overview(request):
@@ -70,10 +93,14 @@ def sales_overview(request):
 
 @login_required
 def quick_sale(request):
+    tenant = request.user.tenant
     if request.method == 'POST':
-        form = QuickSaleForm(request.POST)
-        formset = QuickSaleItemFormSet(request.POST)
+        form = QuickSaleForm(request.POST, tenant=tenant)
+        formset = QuickSaleItemFormSet(request.POST, form_kwargs={'tenant': tenant})
         if form.is_valid() and formset.is_valid():
+            # Where this sale is being rung up. Resolved once, before any line
+            # is priced, because every stock question below is "at this till".
+            sale_location = form.cleaned_data['location']
             lines = []
             stock_errors = []
             channel_prices = {
@@ -90,9 +117,15 @@ def quick_sale(request):
                 price = line_form.cleaned_data.get('price')
                 if price is None:
                     price = channel_prices.get(channel, channel_prices['retail'])(product)
-                if qty > product.quantity:
+                on_hand = available_quantity(product, sale_location)
+                if qty > on_hand:
+                    # Checked at the location being sold from. Checking
+                    # product.quantity counted goods at other branches that
+                    # this till cannot reach, so the sale passed here and
+                    # then failed inside issue_stock().
                     stock_errors.append(
-                        f"Only {product.quantity} of \"{product.name}\" in stock (you entered {qty})."
+                        f"Only {on_hand} of \"{product.name}\" at {sale_location.name} "
+                        f"(you entered {qty})."
                     )
                 lines.append({'product': product, 'qty': qty, 'price': price, 'channel': channel})
 
@@ -120,15 +153,16 @@ def quick_sale(request):
                         InvoiceItem.objects.create(
                             invoice=invoice, product=l['product'], qty=l['qty'], price=l['price'],
                             cost_price=l['product'].cost_price, sale_channel=l['channel'],
+                            location=sale_location,
                         )
                         # Stock leaves through inventory.services, never by
                         # assigning quantity here: the service consumes batches
                         # FEFO, refuses to go negative, and records who sold
                         # what and when.
                         issue_stock(
-                            product=l['product'], quantity=l['qty'], user=request.user,
-                            reason='Quick sale', reference_type='invoice',
-                            reference_id=invoice.pk,
+                            product=l['product'], quantity=l['qty'], location=sale_location,
+                            user=request.user, reason='Quick sale',
+                            reference_type='invoice', reference_id=invoice.pk,
                         )
 
                     amount_received = form.cleaned_data.get('amount_received')
@@ -152,8 +186,8 @@ def quick_sale(request):
                 messages.success(request, f'Sale recorded — Invoice #{invoice.pk}.')
                 return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
-        form = QuickSaleForm()
-        formset = QuickSaleItemFormSet()
+        form = QuickSaleForm(tenant=tenant)
+        formset = QuickSaleItemFormSet(form_kwargs={'tenant': tenant})
 
     return render(request, 'sales/quick_sale.html', {'form': form, 'formset': formset})
 
@@ -361,10 +395,14 @@ def invoice_delete(request, pk):
         with transaction.atomic():
             # Restore the stock this invoice took out, since deleting the
             # sale record shouldn't leave inventory permanently short.
-            for item in invoice.items.select_related('product'):
+            for item in invoice.items.select_related('product', 'location'):
+                # Back to the location it left, not to the default one --
+                # otherwise deleting a branch sale would move stock to head
+                # office while keeping the tenant-wide total correct, so
+                # reconcile() would never notice.
                 return_stock(
-                    product=item.product, quantity=item.qty, user=request.user,
-                    reason=f'Invoice #{invoice.pk} deleted',
+                    product=item.product, quantity=item.qty, location=item.location,
+                    user=request.user, reason=f'Invoice #{invoice.pk} deleted',
                     reference_type='invoice', reference_id=invoice.pk,
                 )
             invoice.delete()
@@ -486,7 +524,7 @@ def order_notify_supplier(request, pk):
 def invoice_item_add(request, invoice_pk):
     invoice = get_object_or_404(Invoice, pk=invoice_pk)
     if request.method == 'POST':
-        form = InvoiceItemForm(request.POST)
+        form = InvoiceItemForm(request.POST, tenant=request.user.tenant)
         if form.is_valid():
             item = form.save(commit=False)
             item.invoice = invoice
@@ -499,9 +537,9 @@ def invoice_item_add(request, invoice_pk):
                 with transaction.atomic():
                     item.save()
                     issue_stock(
-                        product=item.product, quantity=item.qty, user=request.user,
-                        reason='Invoice item', reference_type='invoice',
-                        reference_id=invoice.pk,
+                        product=item.product, quantity=item.qty, location=item.location,
+                        user=request.user, reason='Invoice item',
+                        reference_type='invoice', reference_id=invoice.pk,
                     )
             except StockError as exc:
                 form.add_error(None, str(exc))
@@ -509,7 +547,7 @@ def invoice_item_add(request, invoice_pk):
                 messages.success(request, 'Item added to invoice!')
                 return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
-        form = InvoiceItemForm()
+        form = InvoiceItemForm(tenant=request.user.tenant)
     return render(request, 'sales/invoice_item_form.html', {'form': form, 'invoice': invoice})
 
 @login_required
@@ -853,7 +891,10 @@ def product_profit_report(request):
 
     items = InvoiceItem.objects.select_related('product').annotate(
         revenue=ExpressionWrapper(F('price') * F('qty'), output_field=money),
-        cost=ExpressionWrapper(F('product__cost_price') * F('qty'), output_field=money),
+        # Cost was snapshotted at the sale; using the product's live cost
+        # would rewrite historical gross profit whenever a supplier changes
+        # a price.
+        cost=ExpressionWrapper(F('cost_price') * F('qty'), output_field=money),
     )
 
     start_str = request.GET.get('start')
@@ -912,6 +953,112 @@ def product_profit_report(request):
         'end_date': end_str or '',
     }
     return render(request, 'sales/product_profit_report.html', context)
+
+
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT', 'INVENTORY_MANAGER')
+def product_performance_report(request):
+    """Current operational product metrics, all derived from InvoiceItem.
+
+    This is deliberately separate from Product.quantity: sales results use
+    immutable price/cost snapshots from the sale, while stock uses the live
+    inventory balance maintained by inventory.services.
+    """
+    _, start, end = _reporting_period(request)
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    rows = product_performance(request.user.tenant, today, week_start, month_start)
+    selected = {item['product_id']: item for item in product_totals(request.user.tenant, start, end)}
+    for row in rows:
+        values = selected.get(row['product'].pk, {})
+        row['range_units'] = values.get('units_sold') or Decimal('0')
+        row['range_revenue'] = values.get('revenue') or Decimal('0')
+        row['range_cogs'] = values.get('cogs') or Decimal('0')
+        row['range_gross_profit'] = row['range_revenue'] - row['range_cogs']
+    return render(request, 'sales/product_performance.html', {
+        'rows': rows, 'period_start': start, 'period_end': end,
+        'period': request.GET.get('period', 'today'),
+    })
+
+
+@role_required('OWNER', 'MANAGER', 'ACCOUNTANT')
+def business_history(request):
+    """Reports → Business History, with no duplicate financial records."""
+    period, start, end = _reporting_period(request)
+    summaries = []
+    cursor = end
+    # Date ranges are intentionally bounded; this prevents the dashboard from
+    # loading all historical data in a single request.
+    while cursor >= start:
+        summaries.append(business_day_summary(request.user.tenant, cursor))
+        cursor -= timedelta(days=1)
+    totals = {
+        'revenue': sum((s['financial_summary']['revenue'] for s in summaries), Decimal('0')),
+        'cogs': sum((s['financial_summary']['cogs'] for s in summaries), Decimal('0')),
+        'expenses': sum((s['financial_summary']['operating_expenses'] for s in summaries), Decimal('0')),
+        'net_profit': sum((s['financial_summary']['net_profit'] for s in summaries), Decimal('0')),
+    }
+    closed_days = {
+        day.business_date: day for day in BusinessDay.objects.filter(
+            tenant=request.user.tenant, business_date__gte=start, business_date__lte=end,
+        )
+    }
+    for summary in summaries:
+        summary['close'] = closed_days.get(datetime.fromisoformat(summary['business_date']).date())
+    return render(request, 'sales/business_history.html', {
+        'summaries': summaries, 'totals': totals, 'period': period,
+        'start_date': start, 'end_date': end,
+    })
+
+
+@require_POST
+@role_required('OWNER', 'MANAGER')
+def close_business_day(request, business_date):
+    """Save an immutable point-in-time close snapshot for the selected day."""
+    day = parse_date(business_date)
+    if not day or day > timezone.localdate():
+        messages.error(request, 'Only today or a past business day can be closed.')
+        return redirect('sales:business_history')
+    record, _ = BusinessDay.objects.get_or_create(
+        tenant=request.user.tenant, business_date=day,
+    )
+    if record.is_closed:
+        messages.warning(request, f'{day:%d %b %Y} is already closed. Reopen it before replacing its summary.')
+        return redirect('sales:business_history')
+    summary = business_day_summary(request.user.tenant, day)
+    actual_cash_raw = request.POST.get('actual_cash', '').strip()
+    if actual_cash_raw:
+        try:
+            actual_cash = Decimal(actual_cash_raw)
+            expected_cash = summary['sales']['payment_methods'].get('cash', Decimal('0'))
+            summary['cash_reconciliation'] = {
+                'expected_cash': expected_cash, 'actual_cash': actual_cash,
+                'variance': actual_cash - expected_cash,
+            }
+        except InvalidOperation:
+            messages.error(request, 'Actual cash must be a valid amount.')
+            return redirect('sales:business_history')
+    record.status = BusinessDay.STATUS_CLOSED
+    record.closed_at = timezone.now()
+    record.closed_by = request.user
+    record.closing_notes = request.POST.get('notes', '').strip()
+    record.closing_summary = json_safe(summary)
+    record.save(update_fields=['status', 'closed_at', 'closed_by', 'closing_notes', 'closing_summary'])
+    messages.success(request, f'Business day {day:%d %b %Y} closed. Its calculated summary is now preserved.')
+    return redirect('sales:business_history')
+
+
+@require_POST
+@role_required('OWNER')
+def reopen_business_day(request, business_date):
+    day = parse_date(business_date)
+    record = get_object_or_404(BusinessDay, tenant=request.user.tenant, business_date=day)
+    record.status = BusinessDay.STATUS_OPEN
+    record.reopened_at = timezone.now()
+    record.reopened_by = request.user
+    record.save(update_fields=['status', 'reopened_at', 'reopened_by'])
+    messages.warning(request, f'Business day {day:%d %b %Y} was reopened by an authorised owner.')
+    return redirect('sales:business_history')
 
 
 @role_required('OWNER', 'MANAGER')

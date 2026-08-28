@@ -45,6 +45,15 @@
                     <label class="form-label">{{ form.discount.label }}</label>
                     {{ form.discount }}
                 </div>
+                {% if not form.single_location %}
+                <div class="col-md-4">
+                    <label class="form-label">Selling from</label>
+                    {{ form.location }}
+                    <div class="form-text">Stock comes out of this location.</div>
+                </div>
+                {% else %}
+                {{ form.location.as_hidden }}
+                {% endif %}
             </div>
         </div>
     </div>
@@ -105,6 +114,21 @@
     const addRowBtn = document.getElementById('quick-sale-add-row');
     const totalFormsInput = document.querySelector('[name="form-TOTAL_FORMS"]');
 
+    const locationSelect = document.getElementById('quick-sale-location');
+
+    function stockAtSelectedLocation(option) {
+        if (!option) { return null; }
+        const raw = option.getAttribute('data-stock-map');
+        if (!raw) { return null; }
+        let map;
+        try { map = JSON.parse(raw); } catch (e) { return null; }
+        const locationId = locationSelect ? locationSelect.value : null;
+        if (!locationId) { return null; }
+        // Absent from the map means none here, which is a real answer and
+        // must read as 0 rather than as "unknown".
+        return Object.prototype.hasOwnProperty.call(map, locationId) ? map[locationId] : '0';
+    }
+
     function recalcRow(row) {
         const productSelect = row.querySelector('.quick-sale-product');
         const channelSelect = row.querySelector('.quick-sale-channel');
@@ -116,13 +140,16 @@
         const selectedOption = productSelect.options[productSelect.selectedIndex];
         const channel = channelSelect ? channelSelect.value : 'retail';
         const price = selectedOption ? selectedOption.getAttribute('data-' + channel + '-price') : null;
-        const stock = selectedOption ? selectedOption.getAttribute('data-stock') : null;
+        // Stock at the location being sold from. Showing the tenant-wide
+        // total told a seller they had goods that were sitting at another
+        // branch, and the sale was then refused on submit.
+        const stock = stockAtSelectedLocation(selectedOption);
 
         if (price && !priceInput.dataset.userEdited) {
             priceInput.value = price;
         }
         if (stock !== null && stock !== undefined && stock !== '') {
-            stockHint.textContent = productSelect.value ? (stock + ' in stock') : '';
+            stockHint.textContent = productSelect.value ? (stock + ' available here') : '';
         } else {
             stockHint.textContent = '';
         }
@@ -132,6 +159,10 @@
         const lineTotal = qty * priceVal;
         lineTotalCell.textContent = lineTotal.toFixed(2);
         return lineTotal;
+    }
+
+    if (locationSelect) {
+        locationSelect.addEventListener('change', function () { recalcAll(); });
     }
 
     function recalcAll() {

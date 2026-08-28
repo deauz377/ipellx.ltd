@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Product Performance - IPELLX{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1><i class="bi bi-box-seam"></i> Product performance</h1>
+        <p class="text-muted mb-0">Real product revenue, cost of goods sold, gross profit, and restocking needs.</p>
+    </div>
+    <a class="btn btn-outline-primary" href="{% url 'sales:product_profit_report' %}"><i class="bi bi-tags"></i> Profit by category</a>
+</div>
+
+<form method="get" class="card mb-4"><div class="card-body row g-3 align-items-end">
+    <div class="col-sm-3"><label class="form-label">Period</label><select class="form-select" name="period">
+        <option value="today" {% if period == 'today' %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if period == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="week" {% if period == 'week' %}selected{% endif %}>This week</option>
+        <option value="month" {% if period == 'month' %}selected{% endif %}>This month</option>
+        <option value="previous_month" {% if period == 'previous_month' %}selected{% endif %}>Previous month</option>
+        <option value="custom" {% if period == 'custom' %}selected{% endif %}>Custom range</option>
+    </select></div>
+    <div class="col-sm-3"><label class="form-label">From</label><input class="form-control" type="date" name="start" value="{{ period_start|date:'Y-m-d' }}"></div>
+    <div class="col-sm-3"><label class="form-label">To</label><input class="form-control" type="date" name="end" value="{{ period_end|date:'Y-m-d' }}"></div>
+    <div class="col-sm-3"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-funnel"></i> Apply filter</button></div>
+</div></form>
+
+<div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5><i class="bi bi-graph-up-arrow"></i> Product ledger summary</h5><span class="text-muted small">{{ period_start|date:'d M Y' }} – {{ period_end|date:'d M Y' }}</span></div>
+<div class="table-responsive"><table class="table table-hover align-middle">
+    <thead><tr><th>Product</th><th>Stock</th><th>Sold (period)</th><th>Revenue</th><th>COGS</th><th>Gross profit</th><th>Restock requirement</th><th>Status</th></tr></thead>
+    <tbody>{% for row in rows %}<tr>
+        <td><strong>{{ row.product.name }}</strong><br><small class="text-muted">{{ row.product.sku }}</small></td>
+        <td>{{ row.product.quantity }} {{ row.product.get_unit_display }}</td>
+        <td>{{ row.range_units }}</td>
+        <td>KES {{ row.range_revenue|floatformat:2 }}</td>
+        <td>KES {{ row.range_cogs|floatformat:2 }}</td>
+        <td class="{% if row.range_gross_profit >= 0 %}text-success{% else %}text-danger{% endif %}">KES {{ row.range_gross_profit|floatformat:2 }}</td>
+        <td>{% if row.restock_quantity > 0 %}{{ row.restock_quantity }} units<br><small class="text-muted">KES {{ row.restock_cost|floatformat:2 }}</small>{% else %}<span class="text-success">None</span>{% endif %}</td>
+        <td>{% if row.product.is_out_of_stock %}<span class="badge bg-danger">Out of stock</span>{% elif row.product.is_low_stock %}<span class="badge bg-warning">Low stock</span>{% else %}<span class="badge bg-success">In stock</span>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="8" class="text-center py-5 text-muted">No active products are available for this business.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

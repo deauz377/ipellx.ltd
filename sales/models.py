@@ -7,6 +7,46 @@ from inventory.models import Product
 
 # Create your models here.
 
+
+class BusinessDay(TenantModel):
+    """The authorised closing state for one tenant's operational date.
+
+    Invoices, payments, expenses and stock movements already store their own
+    occurred-on date/time and remain the financial source of truth.  This
+    model therefore stores only the close/reopen audit and a JSON snapshot of
+    the calculated close -- it deliberately does *not* duplicate transactions.
+    """
+    STATUS_OPEN = 'open'
+    STATUS_CLOSED = 'closed'
+    STATUS_CHOICES = [(STATUS_OPEN, 'Open'), (STATUS_CLOSED, 'Closed')]
+
+    business_date = models.DateField(db_index=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        'tenants.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    reopened_at = models.DateTimeField(null=True, blank=True)
+    reopened_by = models.ForeignKey(
+        'tenants.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    closing_notes = models.TextField(blank=True, default='')
+    # A close is an auditable point-in-time report, not a second ledger.
+    closing_summary = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['tenant', 'business_date'], name='sales_businessday_tenant_date'),
+        ]
+        ordering = ['-business_date']
+
+    def __str__(self):
+        return f'{self.business_date} ({self.get_status_display()})'
+
+    @property
+    def is_closed(self):
+        return self.status == self.STATUS_CLOSED
+
 class Invoice(TenantModel):
     customer = models.ForeignKey('customers.Customer', on_delete=models.PROTECT)
     date = models.DateTimeField(auto_now_add=True)
@@ -97,6 +137,16 @@ class InvoiceItem(TenantModel):
     # sold, so historical profit stays accurate even if the product's
     # current cost_price changes later.
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Which location the goods physically left. Without it, deleting an
+    # invoice would return stock to the default location regardless of where
+    # it was sold from -- stock would teleport between branches, and because
+    # the tenant-wide total stayed right, reconcile() would not catch it.
+    # Nullable for lines written before multi-location selling existed; those
+    # all came out of the default location, and the data migration says so.
+    location = models.ForeignKey(
+        'inventory.Location', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='invoice_items',
+    )
 
     def __str__(self):
         return f"{self.qty} x {self.product.name}"

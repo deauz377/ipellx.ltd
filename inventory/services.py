@@ -388,3 +388,28 @@ def stock_value(tenant):
         v=Sum(F('quantity') * F('cost_price'),
               output_field=DecimalField(max_digits=18, decimal_places=2)),
     )['v'] or ZERO
+
+
+def available_by_location(tenant):
+    """{product_pk: {location_pk: quantity}} for everything on hand.
+
+    The sales screen needs availability for every product at every location at
+    once; calling available_quantity() per product per location would be a
+    query per cell.
+    """
+    rows = (
+        StockLevel.objects.filter(tenant=tenant, quantity__gt=ZERO)
+        .values('product_id', 'location_id')
+        .annotate(total=Sum('quantity'))
+    )
+    by_product = {}
+    for row in rows:
+        by_product.setdefault(row['product_id'], {})[row['location_id']] = row['total']
+    return by_product
+
+
+def sellable_locations(tenant):
+    """Locations a sale may be rung up at, default first."""
+    return Location.objects.filter(
+        tenant=tenant, is_active=True,
+    ).order_by('-is_default', 'name')

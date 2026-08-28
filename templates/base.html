@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -543,17 +544,22 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <link href="{% static 'css/ipellx-redesign.css' %}" rel="stylesheet">
 </head>
 <body>
     <!-- Top bar -->
     <nav class="topbar">
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-3">
             <button type="button" id="sidebarToggleBtn" class="sidebar-toggle-btn" aria-label="Toggle menu">
                 <i class="bi bi-list"></i>
             </button>
-            <a class="navbar-brand fw-bold mb-0" href="/">
-                <i class="bi bi-graph-up"></i> IPELLX
-            </a>
+            <form class="d-none d-md-block" action="{% url 'dashboard_search' %}" method="get" role="search">
+                <label class="visually-hidden" for="global-search">Search IPELLX</label>
+                <div class="input-group" style="width: 290px;">
+                    <span class="input-group-text bg-transparent border-end-0 rounded-start-pill"><i class="bi bi-search"></i></span>
+                    <input id="global-search" class="form-control border-start-0 rounded-end-pill" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search invoices, customers">
+                </div>
+            </form>
         </div>
         <ul class="navbar-nav flex-row align-items-center mb-0">
             <li class="nav-item me-2">
@@ -574,7 +580,10 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'core:account_settings' %}">
-                    <i class="bi bi-person"></i> {{ user.username }}
+                    <span class="d-inline-flex align-items-center gap-2 rounded-pill border px-2 py-1" style="font-size: .88rem;">
+                        <span class="rounded-circle text-white d-inline-grid" style="width:30px;height:30px;place-items:center;background:#244d9b;font-weight:700;">{{ user.username|first|upper }}</span>
+                        <span class="d-none d-lg-inline text-start"><strong class="d-block">{{ user.get_full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
+                    </span>
                 </a>
             </li>
             <li class="nav-item">
@@ -592,7 +601,10 @@
 
     <!-- Left sidebar -->
     <aside class="sidebar" id="appSidebar">
+        <span class="brand-mark"><i class="bi bi-graph-up-arrow"></i></span>
+        <span class="brand-name">IPELLX</span>
         <ul class="list-unstyled mb-0">
+            <li class="nav-section">Overview</li>
             <li>
                 <a class="{% if request.path == '/' %}active{% endif %}" href="/">
                     <i class="bi bi-speedometer2"></i> Dashboard
@@ -612,6 +624,7 @@
                 </a>
             </li>
             {% endif %}
+            <li class="nav-section">Sales &amp; money</li>
             <li>
                 <a class="{% if request.resolver_match.app_name == 'sales' and 'payment' not in request.resolver_match.url_name %}active{% endif %}" href="/sales/">
                     <i class="bi bi-receipt"></i> Sales
@@ -622,6 +635,12 @@
                     <i class="bi bi-cash-coin"></i> Payments
                 </a>
             </li>
+            <li>
+                <a class="{% if request.resolver_match.app_name == 'customers' %}active{% endif %}" href="{% url 'customers:crm_dashboard' %}">
+                    <i class="bi bi-person-heart"></i> Customers
+                </a>
+            </li>
+            <li class="nav-section">Purchasing &amp; stock</li>
             <li>
                 <a class="{% if request.resolver_match.app_name == 'expenses' %}active{% endif %}" href="{% url 'expenses:expense_list' %}">
                     <i class="bi bi-bag"></i> Purchases
@@ -639,11 +658,7 @@
                 </a>
             </li>
             {% endif %}
-            <li>
-                <a class="{% if request.resolver_match.app_name == 'customers' %}active{% endif %}" href="{% url 'customers:crm_dashboard' %}">
-                    <i class="bi bi-person-heart"></i> Customers
-                </a>
-            </li>
+            <li class="nav-section">Finance</li>
             {% if user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'ACCOUNTANT' %}
             <li>
                 <a class="{% if request.resolver_match.url_name == 'accountant_dashboard' %}active{% endif %}" href="{% url 'accounting:accountant_dashboard' %}">
@@ -670,6 +685,7 @@
                 </a>
             </li>
             {% endif %}
+            <li class="nav-section">People</li>
             <li>
                 <a class="{% if request.resolver_match.app_name == 'hr' %}active{% endif %}" href="{% url 'hr:dashboard' %}">
                     <i class="bi bi-people"></i> HR & Payroll
@@ -679,6 +695,11 @@
             <li>
                 <a class="{% if request.resolver_match.url_name == 'trial_balance' %}active{% endif %}" href="{% url 'accounting:trial_balance' %}">
                     <i class="bi bi-bar-chart"></i> Reports
+                </a>
+            </li>
+            <li>
+                <a class="{% if request.resolver_match.url_name == 'business_history' %}active{% endif %}" href="{% url 'sales:business_history' %}">
+                    <i class="bi bi-calendar3"></i> Business History
                 </a>
             </li>
             {% endif %}

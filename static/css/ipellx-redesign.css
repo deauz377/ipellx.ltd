@@ -1,0 +1,157 @@
+/* IPELLX interface refresh.  This file deliberately styles existing Django
+   markup rather than replacing template variables, links, forms, or actions. */
+:root {
+  --ink: #0b1d39;
+  --navy: #0b1b35;
+  --navy-raised: #1e304b;
+  --canvas: #f5f7fb;
+  --surface: #ffffff;
+  --line: #dbe3f0;
+  --muted: #627493;
+  --blue: #2f67e8;
+  --green: #09a66f;
+  --amber: #d88712;
+  --violet: #7848d8;
+  --danger: #e14b55;
+  --radius: 16px;
+}
+
+body { background: var(--canvas) !important; color: var(--ink) !important; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important; }
+.topbar { height: 72px !important; left: 334px !important; background: #fff !important; border-bottom: 1px solid var(--line) !important; box-shadow: none !important; padding: 0 30px !important; }
+.navbar-brand { display: none !important; }
+.topbar:before { content: ""; display: block; width: 22px; height: 18px; border: 2px solid #7585a0; border-radius: 3px; box-shadow: inset 7px 0 0 #fff, inset 9px 0 0 #7585a0; }
+.topbar .navbar-nav { gap: 8px; }
+.topbar .nav-link, .topbar .nav-link.btn { color: #64738d !important; padding: 8px 10px !important; font-size: 1.15rem; }
+.topbar .nav-link:hover { color: var(--blue) !important; }
+.theme-toggle-btn { color: #64738d !important; background: transparent !important; }
+.theme-toggle-btn:hover { background: #edf2fb !important; }
+.sidebar { top: 0 !important; width: 334px !important; padding: 88px 14px 96px !important; background: linear-gradient(180deg, #0e203d 0%, #09172d 100%) !important; box-shadow: none !important; border-right: 1px solid #243653 !important; }
+.sidebar:before { content: ""; position: fixed; top: 0; left: 0; width: 334px; height: 72px; border-bottom: 1px solid rgba(210, 224, 247, .11); background: #0e203d; }
+.sidebar:after { content: "Business operations"; position: fixed; top: 47px; left: 84px; color: #9baccc; font-size: .82rem; z-index: 2; }
+.sidebar .brand-mark { position: fixed; top: 18px; left: 24px; z-index: 3; width: 43px; height: 43px; display: grid; place-items: center; border-radius: 12px; color: white; font-size: 1.25rem; background: linear-gradient(135deg, #2f72ef, #09a879); }
+.sidebar .brand-name { position: fixed; top: 15px; left: 82px; z-index: 3; color: #fff; letter-spacing: .06em; font-size: 1.33rem; font-weight: 800; }
+.sidebar .nav-section { color: #7288b2; font-size: .75rem; font-weight: 800; letter-spacing: .08em; padding: 14px 14px 8px; text-transform: uppercase; }
+.sidebar ul { margin: 0 !important; }
+.sidebar li { margin: 1px 0; }
+.sidebar a { min-height: 46px; padding: 11px 15px !important; color: #bac7de !important; border-left: 3px solid transparent !important; border-radius: 11px !important; font-size: .98rem; }
+.sidebar a i { width: 20px; color: #aab9d3; font-size: 1.05rem; }
+.sidebar a:hover { background: rgba(255,255,255,.06) !important; border-left-color: #4b7ff0 !important; color: #fff !important; }
+.sidebar a.active { background: rgba(156,177,214,.18) !important; border-left-color: #2f6cf1 !important; color: #fff !important; }
+.sidebar a.active i { color: #fff !important; }
+.sidebar .portal-link { position: fixed; bottom: 20px; left: 14px; width: 306px; background: rgba(126, 150, 194, .12) !important; }
+.main-content { margin: 0 0 0 334px !important; padding: 104px 26px 38px !important; min-height: 100vh; background: var(--canvas) !important; }
+
+/* Shared page components */
+h1, h2, h3, h4, h5, h6 { color: var(--ink) !important; font-weight: 750 !important; letter-spacing: -.025em; }
+h1 { font-size: clamp(1.75rem, 2.2vw, 2.3rem) !important; margin-bottom: .3rem !important; }
+h1 > i { display: inline-grid; place-items: center; width: 58px; height: 58px; margin-right: 14px; border-radius: 17px; background: #e9f0ff; color: var(--blue); font-size: 1.55rem !important; vertical-align: middle; }
+.text-muted, small.text-muted { color: var(--muted) !important; }
+.card, .table-card, .chart-card, .kpi-card { border: 1px solid var(--line) !important; border-radius: var(--radius) !important; background: var(--surface) !important; box-shadow: 0 1px 2px rgba(11,29,57,.04) !important; overflow: hidden; }
+.card:hover, .stat-card:hover, .kpi-card:hover { box-shadow: 0 7px 20px rgba(33,59,102,.07) !important; transform: translateY(-1px); }
+.card-header { padding: 20px 24px !important; color: var(--ink) !important; background: transparent !important; border-bottom: 1px solid var(--line) !important; }
+.card-header h5 { margin: 0 !important; }
+.card-body { padding: 22px 24px !important; }
+.stat-card, .kpi-card { min-height: 190px; padding: 25px !important; text-align: left !important; border: 1px solid var(--line) !important; background: #fff !important; box-shadow: 0 1px 2px rgba(11,29,57,.04) !important; border-radius: var(--radius) !important; }
+.stat-card:before { display: none !important; }
+.stat-card .number, .kpi-value { color: var(--ink) !important; font-size: clamp(1.6rem, 2.05vw, 2.15rem) !important; font-weight: 800 !important; }
+.stat-card .label, .kpi-label { color: #566987 !important; font-size: .91rem !important; text-transform: none !important; letter-spacing: 0 !important; font-weight: 650 !important; }
+.stat-card > i { display: block; width: 48px; height: 48px; padding: 12px; margin: 0 0 16px !important; border-radius: 13px; background: #e9f0ff; color: var(--blue) !important; }
+.stat-card:nth-child(2n) > i { background: #e0f7f0; color: var(--green) !important; }
+.stat-card:nth-child(3n) > i { background: #fff1d9; color: var(--amber) !important; }
+.btn { border-radius: 10px !important; font-weight: 700 !important; padding: .6rem 1rem !important; }
+.btn-primary { background: var(--blue) !important; border-color: var(--blue) !important; }
+.btn-success { background: var(--green) !important; border-color: var(--green) !important; }
+.btn-outline-primary, .btn-outline-secondary, .btn-outline-success { color: #263a5b !important; border-color: #b9c7dc !important; background: #fff !important; }
+.btn-outline-primary:hover, .btn-outline-secondary:hover, .btn-outline-success:hover { color: var(--blue) !important; border-color: var(--blue) !important; background: #f3f6ff !important; }
+.table { --bs-table-bg: transparent; --bs-table-color: var(--ink); margin-bottom: 0 !important; }
+.table thead th { color: #8191aa !important; background: #f8faff !important; border-bottom: 1px solid var(--line) !important; font-size: .72rem !important; letter-spacing: .06em; text-transform: uppercase; }
+.table td, .table th { border-color: var(--line) !important; padding: .95rem 1rem !important; vertical-align: middle; }
+.table-hover tbody tr:hover { background: #f7f9fe !important; }
+.form-control, .form-select { min-height: 42px; border-color: #b9c7dc !important; border-radius: 10px !important; color: var(--ink) !important; background: #fff !important; }
+.form-control:focus, .form-select:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 .2rem rgba(47,103,232,.12) !important; }
+.badge { border-radius: 999px !important; padding: .36rem .62rem !important; font-weight: 750 !important; }
+.alert { border-radius: 12px !important; border-color: #d8e4fb !important; }
+.list-group-item { border-color: var(--line) !important; background: transparent !important; }
+.nav-tabs { border-bottom-color: var(--line) !important; }
+.nav-tabs .nav-link { color: #61718b; border-radius: 10px 10px 0 0 !important; font-weight: 700; }
+.nav-tabs .nav-link.active { color: var(--ink); border-color: var(--line) var(--line) #fff !important; }
+
+/* Preserve the reference-shell layout even on the old dashboard page, whose
+   own template used to switch the sidebar into a horizontal menu. */
+.dashboard-container, .dashboard-main { display: block !important; height: auto !important; margin: 0 !important; background: transparent !important; overflow: visible !important; }
+.dashboard-content { padding: 0 !important; overflow: visible !important; }
+.sidebar-nav, .dashboard-header { display: none !important; }
+.kpi-grid { gap: 22px !important; }
+.chart-card { padding: 24px !important; }
+
+@media (max-width: 992px) {
+  .topbar { left: 0 !important; height: 64px !important; }
+  .sidebar { top: 64px !important; width: min(334px, 88vw) !important; padding-top: 24px !important; transform: translateX(-110%) !important; }
+  .sidebar.open { transform: translateX(0) !important; }
+  .sidebar:before, .sidebar:after, .sidebar .brand-mark, .sidebar .brand-name { display: none !important; }
+  .sidebar .portal-link { position: static; width: auto; }
+  .sidebar-toggle-btn { display: inline-flex !important; color: #53657f !important; }
+  .sidebar-backdrop.open { display: block !important; inset: 64px 0 0 !important; }
+  .main-content { margin-left: 0 !important; padding: 88px 16px 28px !important; }
+  .topbar .navbar-nav .nav-item:nth-child(3), .topbar .navbar-nav .nav-item:nth-child(4) { display: none; }
+}
+
+@media (max-width: 576px) {
+  .main-content { padding-left: 12px !important; padding-right: 12px !important; }
+  .stat-card { min-height: 150px; }
+  h1 > i { width: 44px; height: 44px; margin-right: 8px; border-radius: 13px; font-size: 1.2rem !important; }
+}
+
+/* The existing theme button adds data-theme="dark" to <html>. Keep this
+   layer after the light styles so every redesigned surface follows it. */
+[data-theme="dark"] {
+  --ink: #edf3ff;
+  --canvas: #111a2a;
+  --surface: #182337;
+  --line: #2b3a52;
+  --muted: #aab8ce;
+  --blue: #77a4ff;
+}
+[data-theme="dark"] body,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .dashboard-container,
+[data-theme="dark"] .dashboard-main { background: var(--canvas) !important; color: var(--ink) !important; }
+[data-theme="dark"] .topbar { background: #182337 !important; border-color: var(--line) !important; }
+[data-theme="dark"] .topbar:before { border-color: #aab8ce; box-shadow: inset 7px 0 0 #182337, inset 9px 0 0 #aab8ce; }
+[data-theme="dark"] .topbar .nav-link,
+[data-theme="dark"] .topbar .nav-link.btn,
+[data-theme="dark"] .theme-toggle-btn { color: #b9c7dc !important; }
+[data-theme="dark"] .theme-toggle-btn:hover { background: #24334b !important; }
+[data-theme="dark"] .input-group-text,
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select { background: #202d43 !important; color: var(--ink) !important; border-color: #3a4b67 !important; }
+[data-theme="dark"] .form-control::placeholder { color: #91a1bc; }
+[data-theme="dark"] .card,
+[data-theme="dark"] .table-card,
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .kpi-card,
+[data-theme="dark"] .stat-card { background: var(--surface) !important; border-color: var(--line) !important; box-shadow: 0 1px 2px rgba(0,0,0,.2) !important; }
+[data-theme="dark"] .card-header { background: transparent !important; border-color: var(--line) !important; }
+[data-theme="dark"] .table { --bs-table-bg: transparent; --bs-table-color: var(--ink); --bs-table-striped-color: var(--ink); }
+[data-theme="dark"] .table thead th { background: #202d43 !important; color: #aab8ce !important; border-color: var(--line) !important; }
+[data-theme="dark"] .table td,
+[data-theme="dark"] .table th,
+[data-theme="dark"] .list-group-item { border-color: var(--line) !important; color: var(--ink) !important; }
+[data-theme="dark"] .table-hover tbody tr:hover { background: #202d43 !important; }
+[data-theme="dark"] .btn-outline-primary,
+[data-theme="dark"] .btn-outline-secondary,
+[data-theme="dark"] .btn-outline-success { color: #dce7fa !important; border-color: #4a5e7e !important; background: #1b2940 !important; }
+[data-theme="dark"] .btn-outline-primary:hover,
+[data-theme="dark"] .btn-outline-secondary:hover,
+[data-theme="dark"] .btn-outline-success:hover { color: #fff !important; background: #263a5a !important; border-color: var(--blue) !important; }
+[data-theme="dark"] .nav-tabs { border-color: var(--line) !important; }
+[data-theme="dark"] .nav-tabs .nav-link { color: #aab8ce !important; }
+[data-theme="dark"] .nav-tabs .nav-link.active { color: var(--ink) !important; background: var(--surface) !important; border-color: var(--line) var(--line) var(--surface) !important; }
+[data-theme="dark"] .stat-card > i { background: #22365a !important; color: #82aaff !important; }
+[data-theme="dark"] .stat-card:nth-child(2n) > i { background: #173c39 !important; color: #4ce0a8 !important; }
+[data-theme="dark"] .stat-card:nth-child(3n) > i { background: #45351d !important; color: #ffca69 !important; }
+[data-theme="dark"] .alert { color: var(--ink) !important; background: #1d2b44 !important; border-color: #334966 !important; }
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] small.text-muted,
+[data-theme="dark"] .stat-card .label,
+[data-theme="dark"] .kpi-label { color: var(--muted) !important; }

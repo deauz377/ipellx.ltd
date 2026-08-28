@@ -31,6 +31,15 @@
                     </div>
                 </div>
             </div>
+            {% if not form.single_location %}
+            <div class="mb-3">
+                <label>Selling from</label>
+                {{ form.location }}
+                <div class="form-text">Stock comes out of this location, and returns here if the invoice is deleted.</div>
+            </div>
+            {% else %}
+            {{ form.location.as_hidden }}
+            {% endif %}
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Add Item</button>
                 <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back</a>
