@@ -180,7 +180,7 @@ def issue_stock(*, product, quantity, location=None, user=None,
         # FEFO: nearest expiry first, then oldest received. Batchless stock is
         # taken last, so dated lots are always cleared before undated ones.
         levels = list(
-            StockLevel.objects.select_for_update()
+            StockLevel.objects.select_for_update(of=('self',))
             .filter(product=product, location=location, quantity__gt=ZERO)
             .select_related('batch')
             .order_by(
