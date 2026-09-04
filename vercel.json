@@ -1,5 +1,7 @@
-{"buildCommand":"pip install --break-system-packages -r requirements.txt",
+{
+  "buildCommand": "pip install --break-system-packages -r requirements.txt",
   "framework": null,
+  "outputDirectory": ".",
   "functions": {
     "api/index.py": {
       "includeFiles": "**"
