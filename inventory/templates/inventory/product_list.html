@@ -73,7 +73,7 @@
                                 {% endif %}
                             </td>
                             <td>KES {{ product.retail_price }}</td>
-                            <td>KES {{ product.quantity|floatformat:2 }}</td>
+                            <td>KES {{ product.stock_value|floatformat:2 }}</td>
                             <td>
                                 <a href="{% url 'inventory:product_edit' product.pk %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
                                 <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Delete</a>
