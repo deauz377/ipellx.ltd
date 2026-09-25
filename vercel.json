@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pip install --break-system-packages -r requirements.txt",
+  "buildCommand": "pip install --break-system-packages -r requirements.txt && python3 scripts/prune_vendor.py",
   "framework": null,
   "outputDirectory": ".",
   "functions": {
