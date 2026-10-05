@@ -3,6 +3,9 @@ from django.contrib import messages
 from django.db.models import Q, ProtectedError
 from django.http import HttpResponse
 import csv
+from decimal import Decimal, InvalidOperation
+
+from django.core.exceptions import ValidationError
 from .models import Product, Supplier
 from .forms import ProductForm, SupplierForm
 from .services import low_stock_queryset, stock_value
@@ -148,10 +151,11 @@ def product_export_csv(request):
     response['Content-Disposition'] = 'attachment; filename="products.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['Name', 'SKU', 'Retail Price', 'Wholesale Price', 'Online Price', 'Quantity', 'Min Stock', 'Supplier'])
+    writer.writerow(['Name', 'SKU', 'Cost Price', 'Retail Price', 'Wholesale Price', 'Online Price', 'Quantity', 'Min Stock', 'Supplier'])
 
     products = Product.objects.all().values_list(
-        'name', 'sku', 'retail_price', 'wholesale_price', 'online_price', 'quantity', 'minimum_stock', 'supplier__name'
+        'name', 'sku', 'cost_price', 'retail_price', 'wholesale_price',
+        'online_price', 'quantity', 'minimum_stock', 'supplier__name'
     )
     for product in products:
         writer.writerow(product)
@@ -165,13 +169,42 @@ def product_import_csv(request):
         decoded_file = csv_file.read().decode('utf-8').splitlines()
         reader = csv.DictReader(decoded_file)
 
+        if 'Cost Price' not in (reader.fieldnames or []):
+            messages.warning(
+                request,
+                'Import stopped: CSV must include a Cost Price column. '
+                'No products were imported.',
+            )
+            return redirect('inventory:product_list')
+
         imported_count = 0
-        for row in reader:
+        for row_number, row in enumerate(reader, start=2):
+            raw_cost = (row.get('Cost Price') or '').strip()
+            if not raw_cost:
+                messages.warning(
+                    request,
+                    f'CSV row {row_number} skipped: Cost Price is missing.',
+                )
+                continue
             try:
-                supplier, created = Supplier.objects.get_or_create(name=row['Supplier'])
+                cost_price = Decimal(raw_cost)
+                if cost_price <= 0:
+                    messages.warning(
+                        request,
+                        f'CSV row {row_number} skipped: Cost Price must be greater than zero.',
+                    )
+                    continue
+                if cost_price <= Decimal('1'):
+                    messages.warning(
+                        request,
+                        f'CSV row {row_number}: Cost Price is KES 1 or less; review it.',
+                    )
+                supplier_name = (row.get('Supplier') or '').strip()
+                supplier = Supplier.objects.get_or_create(name=supplier_name)[0] if supplier_name else None
                 Product.objects.create(
                     name=row['Name'],
                     sku=row['SKU'],
+                    cost_price=cost_price,
                     retail_price=row['Retail Price'],
                     wholesale_price=row['Wholesale Price'],
                     online_price=row['Online Price'],
@@ -180,11 +213,12 @@ def product_import_csv(request):
                     supplier=supplier,
                 )
                 imported_count += 1
-            except Exception as e:
-                messages.error(request, f'Error importing row: {e}')
+            except (KeyError, TypeError, ValueError, InvalidOperation, ValidationError) as e:
+                messages.error(request, f'Error importing CSV row {row_number}: {e}')
                 continue
 
-        messages.success(request, f'Successfully imported {imported_count} products!')
+        if imported_count:
+            messages.success(request, f'Successfully imported {imported_count} products!')
         return redirect('inventory:product_list')
 
     return render(request, 'inventory/product_import.html')

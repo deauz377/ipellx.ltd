@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from tenants.models import TenantModel
@@ -83,7 +84,10 @@ class Product(TenantModel):
 
     retail_price = models.DecimalField(max_digits=10, decimal_places=2)
     # Cost/Buying price used to compute profit per item
-    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cost_price = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text='Positive purchase cost per unit is required for inventory valuation.',
+    )
     wholesale_price = models.DecimalField(max_digits=10, decimal_places=2)
     online_price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -122,6 +126,17 @@ class Product(TenantModel):
     def __str__(self):
         return self.name
 
+    def clean(self):
+        super().clean()
+        if self.is_active and self.cost_price <= 0:
+            raise ValidationError({
+                'cost_price': 'Active products must have a cost price greater than zero.',
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     @property
     def effective_reorder_level(self):
         return self.reorder_level if self.reorder_level is not None else self.minimum_stock
@@ -147,6 +162,14 @@ class Product(TenantModel):
     @property
     def stock_value(self):
         return self.quantity * self.cost_price
+
+    @property
+    def retail_value(self):
+        return self.quantity * self.retail_price
+
+    @property
+    def cost_price_needs_review(self):
+        return self.cost_price <= Decimal('1')
 
 
 class Batch(TenantModel):

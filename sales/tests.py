@@ -40,11 +40,11 @@ class SalesTenantIsolationTests(TwoTenantTestCase):
         cls.invoice_b = Invoice.objects.create(customer=cls.customer_b, total=2000, tenant=cls.tenant_b)
         cls.product_a = Product.objects.create(
             name='Product A', sku='SKU-A-ISO', retail_price=100, wholesale_price=80,
-            online_price=90, tenant=cls.tenant_a,
+            online_price=90, cost_price=50, tenant=cls.tenant_a,
         )
         cls.product_b = Product.objects.create(
             name='Product B', sku='SKU-B-ISO', retail_price=200, wholesale_price=160,
-            online_price=180, tenant=cls.tenant_b,
+            online_price=180, cost_price=100, tenant=cls.tenant_b,
         )
 
     def test_user_a_cannot_view_user_b_invoice_by_id(self):

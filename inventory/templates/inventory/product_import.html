@@ -24,17 +24,17 @@
                 <h6>CSV Format Requirements:</h6>
                 <p>Your CSV file must have the following columns in this exact order:</p>
                 <div class="alert alert-info">
-                    <strong>Required columns:</strong> Name, SKU, Retail Price, Wholesale Price, Online Price, Quantity, Min Stock, Supplier
+                    <strong>Required columns:</strong> Name, SKU, Cost Price, Retail Price, Wholesale Price, Online Price, Quantity, Min Stock, Supplier
                 </div>
 
                 <h6>Example CSV content:</h6>
-                <pre class="bg-light p-3 rounded"><code>Name,SKU,Retail Price,Wholesale Price,Online Price,Quantity,Min Stock,Supplier
-Laptop,LT-001,50000,45000,48000,10,2,Tech Suppliers Ltd
-Mouse,MS-002,1500,1200,1400,50,5,Office Supplies Co</code></pre>
+                <pre class="bg-light p-3 rounded"><code>Name,SKU,Cost Price,Retail Price,Wholesale Price,Online Price,Quantity,Min Stock,Supplier
+Laptop,LT-001,40000,50000,45000,48000,10,2,Tech Suppliers Ltd
+Mouse,MS-002,1000,1500,1200,1400,50,5,Office Supplies Co</code></pre>
 
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Important:</strong> Suppliers will be created automatically if they don't exist.
+                    <strong>Important:</strong> Cost Price is required and must be positive. Costs of KES 1 or less are imported with a warning. Suppliers are created automatically if they don't exist.
                 </div>
             </div>
         </div>

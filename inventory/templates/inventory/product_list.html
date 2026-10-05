@@ -55,8 +55,10 @@
                         <th>Name</th>
                         <th>SKU</th>
                         <th>Qty</th>
-                        <th>Retail Price</th>
-                        <th>Stock Value</th>
+                        <th>Cost Price</th>
+                        <th>Selling Price</th>
+                        <th>Stock Value (Cost)</th>
+                        <th>Retail Value</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -72,8 +74,15 @@
                                     {{ product.quantity }}
                                 {% endif %}
                             </td>
-                            <td>KES {{ product.retail_price }}</td>
+                            <td>
+                                KES {{ product.cost_price|floatformat:2 }}
+                                {% if product.cost_price_needs_review %}
+                                    <span class="badge bg-warning text-dark">Cost not set</span>
+                                {% endif %}
+                            </td>
+                            <td>KES {{ product.retail_price|floatformat:2 }}</td>
                             <td>KES {{ product.stock_value|floatformat:2 }}</td>
+                            <td>KES {{ product.retail_value|floatformat:2 }}</td>
                             <td>
                                 <a href="{% url 'inventory:product_edit' product.pk %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
                                 <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Delete</a>

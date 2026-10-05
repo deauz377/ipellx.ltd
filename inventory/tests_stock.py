@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
@@ -307,6 +308,38 @@ class ProductHelperTests(StockServiceTestCase):
         self.assertFalse(product.is_out_of_stock)
         self.assertEqual(product.recommended_order_quantity, Decimal('46'))
         self.assertEqual(product.stock_value, Decimal('4') * product.cost_price)
+
+    def test_stock_and_retail_values_use_their_respective_prices(self):
+        product = make_product(
+            self.tenant_a, name='Valued Rice', cost_price=Decimal('45.50'),
+            retail_price=Decimal('100'),
+        )
+        product.quantity = Decimal('4')
+        self.assertEqual(product.stock_value, Decimal('182.00'))
+        self.assertEqual(product.retail_value, Decimal('400'))
+
+    def test_active_product_cannot_be_saved_without_positive_cost(self):
+        product = self.product_a
+        product.cost_price = Decimal('0')
+        with self.assertRaises(ValidationError):
+            product.save(update_fields=['cost_price'])
+
+    def test_inactive_product_may_have_no_cost(self):
+        product = make_product(
+            self.tenant_a, name='Archived Item', sku='ARCHIVED-ITEM',
+            cost_price=Decimal('0'), is_active=False,
+        )
+        self.assertFalse(product.is_active)
+
+    def test_cost_price_review_badge_includes_zero_and_one(self):
+        product = self.product_a
+        for cost, expected in [
+            (Decimal('0'), True), (Decimal('1'), True),
+            (Decimal('1.01'), False),
+        ]:
+            with self.subTest(cost=cost):
+                product.cost_price = cost
+                self.assertEqual(product.cost_price_needs_review, expected)
 
     def test_reorder_level_falls_back_to_minimum_stock(self):
         product = make_product(self.tenant_a, name='Sugar', sku='SUGAR-1',
